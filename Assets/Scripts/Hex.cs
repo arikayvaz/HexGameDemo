@@ -3,27 +3,11 @@ using UnityEngine.UIElements;
 
 public class Hex
 {
-    public float size;
-    public float width;
-    public float height;
-
     public AxialCoordinate axialCoord;
     public CubeCoordinate cubeCoord;
 
-    public Vector3 Position 
+    public Hex(int column, int row)
     {
-        get 
-        {
-            return HexUtils.GetPositionFromAxialCoordinate(axialCoord, width, height);
-        }
-    }
-
-    public Hex(float size, int column, int row)
-    {
-        this.size = size;
-        width = size * 2;
-        height = Mathf.Sqrt(3) * size;
-
         axialCoord = new AxialCoordinate(column, row);
         cubeCoord = new CubeCoordinate(column, row, -column - row);
     }
@@ -41,6 +25,21 @@ public struct CubeCoordinate
         this.r = r;
         this.s = s;
     }
+
+    public override string ToString()
+    {
+        return $"q:{q} r:{r} s{s}";
+    }
+
+    public static bool operator ==(CubeCoordinate a, CubeCoordinate b)
+    {
+        return a.q == b.q && a.r == b.r && a.s == b.s;
+    }
+
+    public static bool operator !=(CubeCoordinate a, CubeCoordinate b)
+    {
+        return a.q == b.q || a.r == b.r || a.s == b.s;
+    }
 }
 
 public struct AxialCoordinate 
@@ -52,5 +51,25 @@ public struct AxialCoordinate
     {
         this.q = q;
         this.r = r;
+    }
+
+    public override string ToString()
+    {
+        return $"q:{q} r:{r}";
+    }
+
+    public static bool operator ==(AxialCoordinate a, AxialCoordinate b)
+    {
+        return a.q == b.q && a.r == b.r;
+    }
+
+    public static bool operator !=(AxialCoordinate a, AxialCoordinate b)
+    {
+        return a.q == b.q || a.r == b.r;
+    }
+
+    public override bool Equals(object obj)
+    {
+        return (obj is AxialCoordinate) && this == (AxialCoordinate)obj;
     }
 }
