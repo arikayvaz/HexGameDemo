@@ -36,7 +36,7 @@ public class HexGridManager : MonoBehaviour
                 Vector3 hitPos = hit.point;
                 hitPos.y = 0f;
 
-                AxialCoordinate coord = HexUtils.GetAxialCoordinateFromPosition(hitPos, hexSize);
+                AxialCoordinate coord = HexUtils.GetAxialCoordinateFromWorldPosition(hitPos, hexSize);
 
                 Debug.Log(coord);
 
@@ -80,6 +80,11 @@ public class HexGridManager : MonoBehaviour
                 }//foreach (Hex hex in hexList)
             }//if (hexList != null && hexList.Count > 0 && goHexDict != null && goHexDict.Count > 1)
         }
+    }
+
+    private void OnDrawGizmos()
+    {
+        DrawHexGizmos();
     }
 
     private void InitHexSettings()
@@ -128,6 +133,39 @@ public class HexGridManager : MonoBehaviour
             goHex.transform.position = pos;
 
             goHexDict.Add(hex, goHex);
+        }
+    }
+
+    private void DrawHexGizmos() 
+    {
+        if (hexList == null || hexList.Count < 1)
+            return;
+
+        if (hexSettings == null)
+            return;
+
+        for (int i = 0; i < hexList.Count; i++)
+        {
+            Hex hex = hexList[i];
+
+            Vector3 centerPos = HexUtils.GetPositionFromAxialCoordinate(hex.axialCoord, hexSettings.width, hexSettings.height);
+            centerPos.y = 0.25f;
+
+            Gizmos.DrawWireCube(centerPos, Vector3.one * 0.1f);
+
+            for (int j = 0; j < 6; j++)
+            {
+                float angle_deg = 60 * j;
+                float angle_rad = Mathf.PI / 180f * angle_deg;
+
+                Vector3 pointPos = Vector3.zero;
+
+                pointPos.x = centerPos.x + hexSettings.hexSize * Mathf.Cos(angle_rad);
+                pointPos.y = 0.25f;
+                pointPos.z = centerPos.z + hexSettings.hexSize * Mathf.Sin(angle_rad);
+
+                Gizmos.DrawWireSphere(pointPos, 0.1f);
+            }
         }
     }
 

@@ -33,23 +33,6 @@ public static class HexUtils
         return pos;
     }
 
-    public static AxialCoordinate GetAxialCoordinateFromPosition(Vector3 pos, float size)
-    {
-        float qFrac = ((2.0f / 3.0f) * pos.x) / size;
-        float rFrac = ((-1.0f/3.0f) * pos.x + (HexSettings.SQRT_3 / 2.0f) * pos.z) / size;
-
-        return RoundToAxialCoordinate(qFrac, rFrac);
-    }
-
-    public static CubeCoordinate GetCubeCoordinateFromPosition(Vector3 pos, float size)
-    {
-        float qFrac = ((2.0f / 3.0f) * pos.x) / size;
-        float rFrac = ((-1.0f / 3.0f) * pos.x + (HexSettings.SQRT_3 / 2.0f) * pos.z) / size;
-        float sFrac = -qFrac - rFrac;
-
-        return RoundToCubeCoordinate(qFrac, rFrac, sFrac);
-    }
-
     public static AxialCoordinate RoundToAxialCoordinate(float qFrac, float rFrac)
     {
         float sFrac = -qFrac - rFrac;
@@ -58,21 +41,29 @@ public static class HexUtils
 
     public static CubeCoordinate RoundToCubeCoordinate(float qFrac, float rFrac, float sFrac)
     {
-        int q = Mathf.RoundToInt(qFrac);
-        int r = Mathf.RoundToInt(rFrac);
-        int s = Mathf.RoundToInt(sFrac);
+        float qRound = Mathf.Round(qFrac);
+        float rRound = Mathf.Round(rFrac);
+        float sRound = Mathf.Round(sFrac);
 
-        float qDiff = Mathf.Abs(q - qFrac);
-        float rDiff = Mathf.Abs(r - rFrac);
-        float sDiff = Mathf.Abs(s - sFrac);
+        float qDiff = Mathf.Abs(qRound - qFrac);
+        float rDiff = Mathf.Abs(rRound - rFrac);
+        float sDiff = Mathf.Abs(sRound - sFrac);
 
         if (qDiff > rDiff && qDiff > sDiff)
-            q = -r - s;
+            qRound = -rRound - sRound;
         else if (rDiff > sDiff)
-            r = q - s;
+            rRound = -qRound - sRound;
         else
-            s = -q - r;
+            sRound = -qRound - rRound;
 
-        return new CubeCoordinate(q, r, s);
+        return new CubeCoordinate((int)qRound, (int)rRound, (int)sRound);
+    }
+
+    public static AxialCoordinate GetAxialCoordinateFromWorldPosition(Vector3 position, float hexSize) 
+    {
+        float q = (position.x * (2.0f / 3.0f)) / hexSize;
+        float r = ((-position.x / 3.0f) + ((HexSettings.SQRT_3 / 3.0f) * position.z)) / hexSize;
+
+        return RoundToAxialCoordinate(q, r);
     }
 }
