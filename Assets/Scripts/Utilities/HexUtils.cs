@@ -1,22 +1,13 @@
-using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.TextCore.Text;
+using UnityEngine.UIElements;
 
 public static class HexUtils
 {
-    public enum Directions 
-    {
-        North = 0,
-        NorthEast = 1,
-        SouthEast = 2,
-        South = 3,
-        SouthWest = 4,
-        NorthWest = 5
-    }
-
     /// <summary>
     /// Cube coordinate directions. Starts from north and goes clockwise
     /// </summary>
-    public static readonly CubeCoordinate[] CubeDirections = {
+    public static readonly CubeCoordinate[] CubeDirectionCoordinates = {
         new CubeCoordinate(0, -1, 1), new CubeCoordinate(1, -1, 0), new CubeCoordinate(1, 0, -1),
         new CubeCoordinate(0, 1, -1), new CubeCoordinate(-1, 1, 0), new CubeCoordinate(-1, 0 , 1)
     };
@@ -24,27 +15,33 @@ public static class HexUtils
     /// <summary>
     /// Axial coordinate directions. Starts from north and goes clockwise
     /// </summary>
-    public static readonly AxialCoordinate[] AxialDirections = {
+    public static readonly AxialCoordinate[] AxialDirectionCoordinates = {
         new AxialCoordinate(0, -1), new AxialCoordinate(1, -1), new AxialCoordinate(1, 0),
         new AxialCoordinate(0, 1), new AxialCoordinate(-1, 1), new AxialCoordinate(-1, 0)
     };
 
+    /// <summary>
+    /// Direction Array. Starts from north and goes clockwise
+    /// </summary>
+    public static readonly Directions[] DirectionArray  = { Directions.North, Directions.NorthEast, Directions.SouthEast
+            , Directions.South, Directions.SouthWest, Directions.NorthWest };
+
     public static CubeCoordinate GetCubeDirectionCoordinate(Directions direction) 
     {
-        return CubeDirections[(int)direction];
+        return CubeDirectionCoordinates[(int)direction];
     }
 
     public static AxialCoordinate GetAxialDirectionCoordinate(Directions direction)
     {
-        return AxialDirections[(int)direction];
+        return AxialDirectionCoordinates[(int)direction];
     }
 
     public static CubeCoordinate[] GetAllCubeCoordinateNeighbours(CubeCoordinate parentCoord) 
     {
-        CubeCoordinate[] neighbours = new CubeCoordinate[CubeDirections.Length];
+        CubeCoordinate[] neighbours = new CubeCoordinate[CubeDirectionCoordinates.Length];
 
         for (int i = 0; i < neighbours.Length; i++)
-            neighbours[i] = parentCoord.Add(CubeDirections[i]);
+            neighbours[i] = parentCoord.Add(CubeDirectionCoordinates[i]);
 
         return neighbours;
     }
@@ -56,10 +53,10 @@ public static class HexUtils
 
     public static AxialCoordinate[] GetAllAxialCoordinateNeighbours(AxialCoordinate parentCoord) 
     {
-        AxialCoordinate[] neighbours = new AxialCoordinate[AxialDirections.Length];
+        AxialCoordinate[] neighbours = new AxialCoordinate[AxialDirectionCoordinates.Length];
 
         for (int i = 0; i < neighbours.Length; i++)
-            neighbours[i] = parentCoord.Add(AxialDirections[i]);
+            neighbours[i] = parentCoord.Add(AxialDirectionCoordinates[i]);
 
         return neighbours;
     }
@@ -67,6 +64,11 @@ public static class HexUtils
     public static AxialCoordinate GetAxialCoordinateNeighbour(AxialCoordinate parentCoord, Directions direction) 
     {
         return parentCoord.Add(GetAxialDirectionCoordinate(direction));
+    }
+
+    public static Directions GetNeighbourDirection(Directions direction) 
+    {
+        return direction == Directions.None ? Directions.None : (Directions)(5 - (int)direction);
     }
 
     public static (float, float) CalculateHexWidthAndHeight(float hexSize)
@@ -131,5 +133,60 @@ public static class HexUtils
         float r = ((-position.x / 3.0f) + ((HexSettings.SQRT_3 / 3.0f) * position.z)) / hexSize;
 
         return RoundToAxialCoordinate(q, r);
+    }
+
+    public static Landscapes GetRandomLandscape() 
+    {
+        const int LANDSCAPE_VALUE_MIN = 0;
+        const int LANDSCAPE_VALUE_MAX = 2;
+        const int LANDSCAPE_DELTA = 100;
+
+        return (Landscapes)(Random.Range(LANDSCAPE_VALUE_MIN, LANDSCAPE_VALUE_MAX + 1) * LANDSCAPE_DELTA);
+    }
+
+    public static HexTileModel GetRandomLandscapeHexTileModel(Hex hex) 
+    {
+        LandscapeModel[] landscapeModels = new LandscapeModel[6];
+
+        for (int i = 0; i < DirectionArray.Length; i++)
+            landscapeModels[i] = new LandscapeModel(GetRandomLandscape(), DirectionArray[i]);
+
+        return new HexTileModel(hex, landscapeModels, null);
+    }
+
+    public static Vector3 GetLandscapePosition(Vector3 hexTilePosition, Directions direction, float height) 
+    {
+        Vector3 position = hexTilePosition;
+        position.y += 0.2f;
+
+        if (direction == Directions.None)
+            return position;
+
+        int dirIndex = (int)direction;
+
+        float angle_deg = 60f - (60f * dirIndex);
+        float angle_rad = Mathf.PI / 180f * (angle_deg + 30f);
+
+        float halfHeight = height * 0.5f;
+
+        const float HEIGHT_OFFSET_MULT = 0.8f;
+
+        position.x += (halfHeight * HEIGHT_OFFSET_MULT) * Mathf.Cos(angle_rad);
+        position.z += (halfHeight * HEIGHT_OFFSET_MULT) * Mathf.Sin(angle_rad);
+        
+
+        return position;
+    }
+
+    public static Quaternion GetLandscapeRotation(Directions direction) 
+    {
+        if (direction == Directions.None)
+            return Quaternion.identity;
+
+        int dirIndex = (int)direction;
+
+        float angle_deg = 60f * dirIndex;
+
+        return Quaternion.Euler(0f, angle_deg, 0f);
     }
 }

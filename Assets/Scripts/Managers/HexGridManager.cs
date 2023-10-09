@@ -1,28 +1,40 @@
 using System.Collections.Generic;
-using System.Drawing;
-using Unity.Burst.CompilerServices;
-using UnityEditor;
 using UnityEngine;
-using static UnityEditor.PlayerSettings;
 
 public class HexGridManager : MonoBehaviour
 {
+    public static HexGridManager Instance { get; private set; } = null;
+
     public Vector2Int mapSize = Vector2Int.zero;
-    public GameObject goHexPrefab = null;
+    public HexTile hexTilePrefab = null;
     [Min(1f)]
     public float hexSize = 1f;
     public Transform trHexParent = null;
     public LayerMask inputLayerMask;
 
+    [Space]
+    public GameObject goLandscapeEmpty = null;
+    public GameObject goLandscapeForest = null;
+    public GameObject goLandscapeField = null;
+
     private HexSettings hexSettings = null;
     private List<Hex> hexList = null;
-    private Dictionary<Hex, GameObject> goHexDict = null;
+    private Dictionary<Hex, HexTile> hexTileDict = null;
+
+    public HexSettings HexSettings => hexSettings;
 
     private void Awake()
     {
+        Instance = this;
         InitHexSettings();
         SetHexes();
         SpawnHexes();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 
     private void Update()
@@ -38,9 +50,7 @@ public class HexGridManager : MonoBehaviour
 
                 AxialCoordinate coord = HexUtils.GetAxialCoordinateFromWorldPosition(hitPos, hexSize);
 
-                Debug.Log(coord);
-
-                if (hexList != null && hexList.Count > 0 && goHexDict != null && goHexDict.Count > 1)
+                if (hexList != null && hexList.Count > 0 && hexTileDict != null && hexTileDict.Count > 1)
                 {
                     foreach (Hex hex in hexList)
                     {
@@ -49,14 +59,14 @@ public class HexGridManager : MonoBehaviour
                         if (isActive)
                             Debug.Log("Found! " + coord);
 
-                        GameObject goHex;
+                        HexTile hexTile;
 
-                        goHexDict.TryGetValue(hex, out goHex);
+                        hexTileDict.TryGetValue(hex, out hexTile);
 
-                        if (goHex == null)
+                        if (hexTile == null)
                             continue;
 
-                        goHex.SetActive(isActive);
+                        hexTile.gameObject.SetActive(isActive);
                     }//foreach (Hex hex in hexList)
                 }//if (hexList != null && hexList.Count > 0 && goHexDict != null && goHexDict.Count > 1)
             }//if (Physics.Raycast(r, out hit, 1000f, inputLayerMask))
@@ -65,18 +75,18 @@ public class HexGridManager : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.G))
         {
-            if (hexList != null && hexList.Count > 0 && goHexDict != null && goHexDict.Count > 1)
+            if (hexList != null && hexList.Count > 0 && hexTileDict != null && hexTileDict.Count > 1)
             {
                 foreach (Hex hex in hexList)
                 {
-                    GameObject goHex;
+                    HexTile hexTile;
 
-                    goHexDict.TryGetValue(hex, out goHex);
+                    hexTileDict.TryGetValue(hex, out hexTile);
 
-                    if (goHex == null)
+                    if (hexTile == null)
                         continue;
 
-                    goHex.SetActive(true);
+                    hexTile.gameObject.SetActive(true);
                 }//foreach (Hex hex in hexList)
             }//if (hexList != null && hexList.Count > 0 && goHexDict != null && goHexDict.Count > 1)
         }
@@ -84,7 +94,22 @@ public class HexGridManager : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        DrawHexGizmos();
+        //DrawHexGizmos();
+    }
+
+    public GameObject GetLandscapeGameObject(Landscapes landscape, Transform trParent) 
+    {
+        switch (landscape)
+        {
+            case Landscapes.Empty:
+                return Instantiate(goLandscapeEmpty, trParent);
+            case Landscapes.Forest:
+                return Instantiate(goLandscapeForest, trParent);
+            case Landscapes.Field:
+                return Instantiate(goLandscapeField, trParent);
+            default:
+                return null;
+        }
     }
 
     private void InitHexSettings()
@@ -122,17 +147,21 @@ public class HexGridManager : MonoBehaviour
         if (hexList == null || hexList.Count < 1)
             return;
 
-        goHexDict = new Dictionary<Hex, GameObject>();
+        hexTileDict = new Dictionary<Hex, HexTile>();
 
         foreach (Hex hex in hexList)
         {
             Vector3 pos = HexUtils.GetPositionFromAxialCoordinate(hex.axialCoord, hexSettings.width, hexSettings.height);
 
-            GameObject goHex = Instantiate(goHexPrefab);
-            goHex.name = $"Hex({hex.axialCoord.q},{hex.axialCoord.r})";
-            goHex.transform.position = pos;
+            HexTile hexTile = Instantiate<HexTile>(hexTilePrefab);
 
-            goHexDict.Add(hex, goHex);
+            hexTile.InitTile(HexUtils.GetRandomLandscapeHexTileModel(hex));
+
+            hexTile.transform.position = pos;
+
+            hexTile.SpawnLandscapes();
+
+            hexTileDict.Add(hex, hexTile);
         }
     }
 

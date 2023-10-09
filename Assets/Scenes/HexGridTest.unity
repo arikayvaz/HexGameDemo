@@ -229,12 +229,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mapSize: {x: 3, y: 3}
-  goHexPrefab: {fileID: 3806330951232842714, guid: 9922b7eda4f04ec4d968efcfc6102533, type: 3}
+  hexTilePrefab: {fileID: 2202829522007624035, guid: c09f604c330c20248be126e2a1c4ed45, type: 3}
   hexSize: 1
   trHexParent: {fileID: 361324813}
   inputLayerMask:
     serializedVersion: 2
     m_Bits: 8
+  goLandscapeEmpty: {fileID: 8507106602194858500, guid: 2b4bc1ee949e1cb4bbe59d189960a83e, type: 3}
+  goLandscapeForest: {fileID: 3630242487137992870, guid: af26b438987fbbb48bc8065d965b8f08, type: 3}
+  goLandscapeField: {fileID: 6892257486809933246, guid: 1bf996f4ced3a0949946162387efcbdc, type: 3}
 --- !u!4 &1414489172
 Transform:
   m_ObjectHideFlags: 0
