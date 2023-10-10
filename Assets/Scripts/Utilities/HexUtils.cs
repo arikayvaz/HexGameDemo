@@ -4,20 +4,31 @@ using UnityEngine.UIElements;
 
 public static class HexUtils
 {
+    public static readonly Color[] GizmosColors = new Color[]
+    {
+        Color.red,
+        Color.blue,
+        Color.magenta,
+        Color.cyan,
+        Color.yellow,
+        Color.black
+    };
+
+
     /// <summary>
     /// Cube coordinate directions. Starts from north and goes clockwise
     /// </summary>
     public static readonly CubeCoordinate[] CubeDirectionCoordinates = {
-        new CubeCoordinate(0, -1, 1), new CubeCoordinate(1, -1, 0), new CubeCoordinate(1, 0, -1),
-        new CubeCoordinate(0, 1, -1), new CubeCoordinate(-1, 1, 0), new CubeCoordinate(-1, 0 , 1)
+        new CubeCoordinate(0, 1, -1), new CubeCoordinate(1, 0 , -1), new CubeCoordinate(1, -1, 0),
+        new CubeCoordinate(0, -1, 1), new CubeCoordinate(-1, 0, 1), new CubeCoordinate(-1, 1, 0)
     };
 
     /// <summary>
     /// Axial coordinate directions. Starts from north and goes clockwise
     /// </summary>
     public static readonly AxialCoordinate[] AxialDirectionCoordinates = {
-        new AxialCoordinate(0, -1), new AxialCoordinate(1, -1), new AxialCoordinate(1, 0),
-        new AxialCoordinate(0, 1), new AxialCoordinate(-1, 1), new AxialCoordinate(-1, 0)
+        new AxialCoordinate(0, 1), new AxialCoordinate(1, 0), new AxialCoordinate(1, -1),
+        new AxialCoordinate(0, -1), new AxialCoordinate(-1, 0), new AxialCoordinate(-1, 1)
     };
 
     /// <summary>
@@ -68,7 +79,17 @@ public static class HexUtils
 
     public static Directions GetNeighbourDirection(Directions direction) 
     {
-        return direction == Directions.None ? Directions.None : (Directions)(5 - (int)direction);
+        return direction == Directions.None ? Directions.None : (Directions)((3 + (int)direction) % 6);
+    }
+
+    public static Directions GetSideDirection(Directions direction) 
+    {
+        if (direction == Directions.None)
+            return Directions.None;
+
+        int dirVal = (int)direction;
+
+        return (Directions)((dirVal + 1) % 6);
     }
 
     public static (float, float) CalculateHexWidthAndHeight(float hexSize)
@@ -135,13 +156,13 @@ public static class HexUtils
         return RoundToAxialCoordinate(q, r);
     }
 
-    public static Landscapes GetRandomLandscape() 
+    public static LandscapeTypes GetRandomLandscape() 
     {
-        const int LANDSCAPE_VALUE_MIN = 0;
+        const int LANDSCAPE_VALUE_MIN = 1;
         const int LANDSCAPE_VALUE_MAX = 2;
         const int LANDSCAPE_DELTA = 100;
 
-        return (Landscapes)(Random.Range(LANDSCAPE_VALUE_MIN, LANDSCAPE_VALUE_MAX + 1) * LANDSCAPE_DELTA);
+        return (LandscapeTypes)(Random.Range(LANDSCAPE_VALUE_MIN, LANDSCAPE_VALUE_MAX + 1) * LANDSCAPE_DELTA);
     }
 
     public static HexTileModel GetRandomLandscapeHexTileModel(Hex hex) 

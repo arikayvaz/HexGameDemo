@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 public class HexGridManager : MonoBehaviour
@@ -18,8 +19,11 @@ public class HexGridManager : MonoBehaviour
     public GameObject goLandscapeField = null;
 
     private HexSettings hexSettings = null;
-    private List<Hex> hexList = null;
+    private Dictionary<CubeCoordinate, Hex> hexDict = null;
     private Dictionary<Hex, HexTile> hexTileDict = null;
+
+    public Dictionary<Hex, HexTile> HextTileDict => hexTileDict;
+    public Dictionary<CubeCoordinate, Hex> HexDict => hexDict;
 
     public HexSettings HexSettings => hexSettings;
 
@@ -29,6 +33,11 @@ public class HexGridManager : MonoBehaviour
         InitHexSettings();
         SetHexes();
         SpawnHexes();
+    }
+
+    private void Start()
+    {
+        HexNodeManager.Instance.SetHexNodes();
     }
 
     private void OnDestroy()
@@ -50,9 +59,9 @@ public class HexGridManager : MonoBehaviour
 
                 AxialCoordinate coord = HexUtils.GetAxialCoordinateFromWorldPosition(hitPos, hexSize);
 
-                if (hexList != null && hexList.Count > 0 && hexTileDict != null && hexTileDict.Count > 1)
+                if (hexDict != null && hexDict.Count > 0 && hexTileDict != null && hexTileDict.Count > 1)
                 {
-                    foreach (Hex hex in hexList)
+                    foreach (Hex hex in hexDict.Values)
                     {
                         bool isActive = hex.axialCoord == coord;
 
@@ -75,9 +84,9 @@ public class HexGridManager : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.G))
         {
-            if (hexList != null && hexList.Count > 0 && hexTileDict != null && hexTileDict.Count > 1)
+            if (hexDict != null && hexDict.Count > 0 && hexTileDict != null && hexTileDict.Count > 1)
             {
-                foreach (Hex hex in hexList)
+                foreach (Hex hex in hexDict.Values)
                 {
                     HexTile hexTile;
 
@@ -94,22 +103,100 @@ public class HexGridManager : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        //DrawHexGizmos();
+        DrawHexGizmos();
     }
 
-    public GameObject GetLandscapeGameObject(Landscapes landscape, Transform trParent) 
+    public GameObject GetLandscapeGameObject(LandscapeTypes landscape, Transform trParent) 
     {
         switch (landscape)
         {
-            case Landscapes.Empty:
+            case LandscapeTypes.Empty:
                 return Instantiate(goLandscapeEmpty, trParent);
-            case Landscapes.Forest:
+            case LandscapeTypes.Forest:
                 return Instantiate(goLandscapeForest, trParent);
-            case Landscapes.Field:
+            case LandscapeTypes.Field:
                 return Instantiate(goLandscapeField, trParent);
             default:
                 return null;
         }
+    }
+
+    public LandscapeModel GetNeighbourHexLandscape(Hex parentHex, Directions landscapeDirection) 
+    {
+        /*
+        Hex neighbourHex = GetNeighbourHex(parentHex, landscapeDirection);
+
+        if (!hexDict.ContainsValue(neighbourHex))
+            return null;
+
+        */
+        HexTile neighbourHexTile = HetNeighbourHexTile(parentHex, landscapeDirection);
+        //hexTileDict.TryGetValue(neighbourHex, out neighbourHexTile);
+
+        if (neighbourHexTile == null)
+            return null;
+
+        return neighbourHexTile.GetNeighbourLandscape(landscapeDirection);
+    }
+
+    public HexTile HetNeighbourHexTile(Hex hex, Directions direction) 
+    {
+        Hex neighbourHex = GetNeighbourHex(hex, direction);
+
+        if (!hexDict.ContainsValue(neighbourHex))
+            return null;
+
+        HexTile neighbourHexTile = null;
+        hexTileDict.TryGetValue(neighbourHex, out neighbourHexTile);
+
+        return neighbourHexTile;
+    }
+
+    public Hex GetNeighbourHex(Hex hex, Directions direction) 
+    {
+        if (hexDict == null || hexDict.Count < 1)
+            return null;
+
+        if (hexTileDict == null || hexTileDict.Count < 1)
+            return null;
+
+        CubeCoordinate neighbourCoord = HexUtils.GetCubeCoordinateNeighbour(hex.cubeCoord, direction);
+
+        if (!hexDict.ContainsKey(neighbourCoord))
+            return null;
+
+        Hex neighbour = null;
+        hexDict.TryGetValue(neighbourCoord, out neighbour);
+
+        return neighbour;
+    }
+
+    public HexTile[] GetAllNeighbourHexTiles(Hex parentHex) 
+    {
+        if (hexDict == null || hexDict.Count < 1)
+            return null;
+
+        if (hexTileDict == null || hexTileDict.Count < 1)
+            return null;
+
+        CubeCoordinate[] coords = HexUtils.GetAllCubeCoordinateNeighbours(parentHex.cubeCoord);
+        HexTile[] hexTiles = new HexTile[coords.Length];
+
+        for (int i = 0; i < coords.Length; i++)
+        {
+            if (!hexDict.ContainsKey(coords[i]))
+                continue;
+
+            Hex hex;
+            hexDict.TryGetValue(coords[i], out hex);
+
+            if (!hexTileDict.ContainsKey(hex))
+                continue;
+
+            hexTileDict.TryGetValue(hex, out hexTiles[i]);
+        }
+
+        return hexTiles;
     }
 
     private void InitHexSettings()
@@ -122,7 +209,7 @@ public class HexGridManager : MonoBehaviour
         if (hexSettings == null)
             return;
 
-        hexList = new List<Hex>();
+        hexDict = new Dictionary<CubeCoordinate, Hex>();
 
         int mapLength = hexSettings.mapLength;
 
@@ -134,7 +221,7 @@ public class HexGridManager : MonoBehaviour
             for (int r = r1; r <= r2; r++)
             {
                 Hex hex = new Hex(q, r);
-                hexList.Add(hex);
+                hexDict.Add(hex.cubeCoord, hex);
             }//for (int r = r1; r <= r2; r++)
         }//for (int q = -mapLength; q <= mapLength; q++)
     }
@@ -144,18 +231,18 @@ public class HexGridManager : MonoBehaviour
         if (hexSettings == null)
             return;
 
-        if (hexList == null || hexList.Count < 1)
+        if (hexDict == null || hexDict.Count < 1)
             return;
 
         hexTileDict = new Dictionary<Hex, HexTile>();
 
-        foreach (Hex hex in hexList)
+        foreach (Hex hex in hexDict.Values)
         {
             Vector3 pos = HexUtils.GetPositionFromAxialCoordinate(hex.axialCoord, hexSettings.width, hexSettings.height);
 
             HexTile hexTile = Instantiate<HexTile>(hexTilePrefab);
 
-            hexTile.InitTile(HexUtils.GetRandomLandscapeHexTileModel(hex));
+            hexTile.InitTile(HexUtils.GetRandomLandscapeHexTileModel(hex), hex);
 
             hexTile.transform.position = pos;
 
@@ -167,34 +254,24 @@ public class HexGridManager : MonoBehaviour
 
     private void DrawHexGizmos() 
     {
-        if (hexList == null || hexList.Count < 1)
+        if (hexTileDict == null || hexTileDict.Count < 1)
             return;
 
-        if (hexSettings == null)
-            return;
+        int index = 0;
 
-        for (int i = 0; i < hexList.Count; i++)
+        foreach (HexTile tile in hexTileDict.Values)
         {
-            Hex hex = hexList[i];
+            Vector3 pos = tile.transform.position;
 
-            Vector3 centerPos = HexUtils.GetPositionFromAxialCoordinate(hex.axialCoord, hexSettings.width, hexSettings.height);
-            centerPos.y = 0.25f;
+            pos.y += 0.1f;
 
-            Gizmos.DrawWireCube(centerPos, Vector3.one * 0.1f);
+            GUIStyle style = EditorStyles.boldLabel;
+            style.fontSize = 18;
+            style.fontStyle = FontStyle.Bold;
 
-            for (int j = 0; j < 6; j++)
-            {
-                float angle_deg = 60 * j;
-                float angle_rad = Mathf.PI / 180f * angle_deg;
+            Handles.Label(pos, index.ToString(), style);
 
-                Vector3 pointPos = Vector3.zero;
-
-                pointPos.x = centerPos.x + hexSettings.hexSize * Mathf.Cos(angle_rad);
-                pointPos.y = 0.25f;
-                pointPos.z = centerPos.z + hexSettings.hexSize * Mathf.Sin(angle_rad);
-
-                Gizmos.DrawWireSphere(pointPos, 0.1f);
-            }
+            index++;
         }
     }
 

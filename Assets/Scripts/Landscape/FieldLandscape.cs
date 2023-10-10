@@ -1,4 +1,4 @@
 public class FieldLandscape : Landscape
 {
-    public override Landscapes LandScape => Landscapes.Field;
+    public override LandscapeTypes LandScape => LandscapeTypes.Field;
 }
