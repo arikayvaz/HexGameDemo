@@ -18,8 +18,11 @@ public class HexGridManager : MonoBehaviour
     public GameObject goLandscapeField = null;
 
     private HexSettings hexSettings = null;
-    private List<Hex> hexList = null;
+    private Dictionary<CubeCoordinate, Hex> hexDict = null;
     private Dictionary<Hex, HexTile> hexTileDict = null;
+
+    public Dictionary<Hex, HexTile> HextTileDict => hexTileDict;
+    public Dictionary<CubeCoordinate, Hex> HexDict => hexDict;
 
     public HexSettings HexSettings => hexSettings;
 
@@ -29,6 +32,11 @@ public class HexGridManager : MonoBehaviour
         InitHexSettings();
         SetHexes();
         SpawnHexes();
+    }
+
+    private void Start()
+    {
+        HexNodeManager.Instance.SetHexNodes();
     }
 
     private void OnDestroy()
@@ -50,9 +58,9 @@ public class HexGridManager : MonoBehaviour
 
                 AxialCoordinate coord = HexUtils.GetAxialCoordinateFromWorldPosition(hitPos, hexSize);
 
-                if (hexList != null && hexList.Count > 0 && hexTileDict != null && hexTileDict.Count > 1)
+                if (hexDict != null && hexDict.Count > 0 && hexTileDict != null && hexTileDict.Count > 1)
                 {
-                    foreach (Hex hex in hexList)
+                    foreach (Hex hex in hexDict.Values)
                     {
                         bool isActive = hex.axialCoord == coord;
 
@@ -75,9 +83,9 @@ public class HexGridManager : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.G))
         {
-            if (hexList != null && hexList.Count > 0 && hexTileDict != null && hexTileDict.Count > 1)
+            if (hexDict != null && hexDict.Count > 0 && hexTileDict != null && hexTileDict.Count > 1)
             {
-                foreach (Hex hex in hexList)
+                foreach (Hex hex in hexDict.Values)
                 {
                     HexTile hexTile;
 
@@ -97,19 +105,54 @@ public class HexGridManager : MonoBehaviour
         //DrawHexGizmos();
     }
 
-    public GameObject GetLandscapeGameObject(Landscapes landscape, Transform trParent) 
+    public GameObject GetLandscapeGameObject(LandscapeTypes landscape, Transform trParent) 
     {
         switch (landscape)
         {
-            case Landscapes.Empty:
+            case LandscapeTypes.Empty:
                 return Instantiate(goLandscapeEmpty, trParent);
-            case Landscapes.Forest:
+            case LandscapeTypes.Forest:
                 return Instantiate(goLandscapeForest, trParent);
-            case Landscapes.Field:
+            case LandscapeTypes.Field:
                 return Instantiate(goLandscapeField, trParent);
             default:
                 return null;
         }
+    }
+
+    public LandscapeModel GetNeighbourHexLandscape(Hex parentHex, Directions landscapeDirection) 
+    {
+        Hex neighbourHex = GetNeighbourHex(parentHex, landscapeDirection);
+
+        if (!hexDict.ContainsValue(neighbourHex))
+            return null;
+
+        HexTile neighbourHexTile = null;
+        hexTileDict.TryGetValue(neighbourHex, out neighbourHexTile);
+
+        if (neighbourHexTile == null)
+            return null;
+
+        return neighbourHexTile.GetNeighbourLandscape(landscapeDirection);
+    }
+
+    public Hex GetNeighbourHex(Hex hex, Directions direction) 
+    {
+        if (hexDict == null || hexDict.Count < 1)
+            return null;
+
+        if (hexTileDict == null || hexTileDict.Count < 1)
+            return null;
+
+        CubeCoordinate neighbourCoord = HexUtils.GetCubeCoordinateNeighbour(hex.cubeCoord, direction);
+
+        if (!hexDict.ContainsKey(neighbourCoord))
+            return null;
+
+        Hex neighbour = null;
+        hexDict.TryGetValue(neighbourCoord, out neighbour);
+
+        return neighbour;
     }
 
     private void InitHexSettings()
@@ -122,7 +165,7 @@ public class HexGridManager : MonoBehaviour
         if (hexSettings == null)
             return;
 
-        hexList = new List<Hex>();
+        hexDict = new Dictionary<CubeCoordinate, Hex>();
 
         int mapLength = hexSettings.mapLength;
 
@@ -134,7 +177,7 @@ public class HexGridManager : MonoBehaviour
             for (int r = r1; r <= r2; r++)
             {
                 Hex hex = new Hex(q, r);
-                hexList.Add(hex);
+                hexDict.Add(hex.cubeCoord, hex);
             }//for (int r = r1; r <= r2; r++)
         }//for (int q = -mapLength; q <= mapLength; q++)
     }
@@ -144,18 +187,18 @@ public class HexGridManager : MonoBehaviour
         if (hexSettings == null)
             return;
 
-        if (hexList == null || hexList.Count < 1)
+        if (hexDict == null || hexDict.Count < 1)
             return;
 
         hexTileDict = new Dictionary<Hex, HexTile>();
 
-        foreach (Hex hex in hexList)
+        foreach (Hex hex in hexDict.Values)
         {
             Vector3 pos = HexUtils.GetPositionFromAxialCoordinate(hex.axialCoord, hexSettings.width, hexSettings.height);
 
             HexTile hexTile = Instantiate<HexTile>(hexTilePrefab);
 
-            hexTile.InitTile(HexUtils.GetRandomLandscapeHexTileModel(hex));
+            hexTile.InitTile(HexUtils.GetRandomLandscapeHexTileModel(hex), hex);
 
             hexTile.transform.position = pos;
 
@@ -167,12 +210,12 @@ public class HexGridManager : MonoBehaviour
 
     private void DrawHexGizmos() 
     {
-        if (hexList == null || hexList.Count < 1)
+        if (hexDict == null || hexDict.Count < 1)
             return;
 
         if (hexSettings == null)
             return;
-
+        /*
         for (int i = 0; i < hexList.Count; i++)
         {
             Hex hex = hexList[i];
@@ -196,6 +239,7 @@ public class HexGridManager : MonoBehaviour
                 Gizmos.DrawWireSphere(pointPos, 0.1f);
             }
         }
+        */
     }
 
     /*

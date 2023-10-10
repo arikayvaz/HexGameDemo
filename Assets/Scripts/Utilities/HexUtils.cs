@@ -71,6 +71,16 @@ public static class HexUtils
         return direction == Directions.None ? Directions.None : (Directions)(5 - (int)direction);
     }
 
+    public static Directions GetSideDirection(Directions direction) 
+    {
+        if (direction == Directions.None)
+            return Directions.None;
+
+        int dirVal = (int)direction;
+
+        return (Directions)((dirVal + 1) % 6);
+    }
+
     public static (float, float) CalculateHexWidthAndHeight(float hexSize)
     {
         float width = hexSize * 1.5f;
@@ -135,13 +145,13 @@ public static class HexUtils
         return RoundToAxialCoordinate(q, r);
     }
 
-    public static Landscapes GetRandomLandscape() 
+    public static LandscapeTypes GetRandomLandscape() 
     {
         const int LANDSCAPE_VALUE_MIN = 0;
         const int LANDSCAPE_VALUE_MAX = 2;
         const int LANDSCAPE_DELTA = 100;
 
-        return (Landscapes)(Random.Range(LANDSCAPE_VALUE_MIN, LANDSCAPE_VALUE_MAX + 1) * LANDSCAPE_DELTA);
+        return (LandscapeTypes)(Random.Range(LANDSCAPE_VALUE_MIN, LANDSCAPE_VALUE_MAX + 1) * LANDSCAPE_DELTA);
     }
 
     public static HexTileModel GetRandomLandscapeHexTileModel(Hex hex) 

@@ -1,11 +1,17 @@
+using UnityEngine;
+
 public class LandscapeModel
 {
-    public Landscapes landscape;
+    public LandscapeTypes landscapeType;
     public Directions direction;
+    public Vector3 position;
 
-    public LandscapeModel(Landscapes landscape, Directions direction)
+    public NodeGroup group = null;
+    public bool HasGroup => group != null;
+
+    public LandscapeModel(LandscapeTypes landscapeType, Directions direction)
     {
-        this.landscape = landscape;
+        this.landscapeType = landscapeType;
         this.direction = direction;
     }
 }

@@ -1,16 +1,20 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.TextCore.Text;
 
 public class HexTile : MonoBehaviour
 {
 
     private HexTileModel model;
+    public Hex hex;
 
-    public void InitTile(HexTileModel model) 
+    public void InitTile(HexTileModel model, Hex hex) 
     {
         this.model = model;
+        this.hex = hex;
     }
+
+    public LandscapeModel[] Lanscapes => model.landscapes;
 
     public void SpawnLandscapes() 
     {
@@ -19,14 +23,69 @@ public class HexTile : MonoBehaviour
 
         foreach (LandscapeModel model in model.landscapes)
         {
-            GameObject goLandscape = HexGridManager.Instance.GetLandscapeGameObject(model.landscape, transform);
+            GameObject goLandscape = HexGridManager.Instance.GetLandscapeGameObject(model.landscapeType, transform);
 
             goLandscape.name = $"LS_{model.direction}";
             goLandscape.transform.position = HexUtils.GetLandscapePosition(transform.position, model.direction, HexGridManager.Instance.HexSettings.height);
             goLandscape.transform.rotation = HexUtils.GetLandscapeRotation(model.direction);
 
-            goLandscape.SetActive(model.landscape != Landscapes.Empty);
+            goLandscape.SetActive(model.landscapeType != LandscapeTypes.Empty);
+
+            model.position = goLandscape.transform.position;
         }
+    }
+
+    public LandscapeModel GetNeighbourLandscape(Directions direction) 
+    {
+        if (model == null || (model.landscapes == null || model.landscapes.Length < 1))
+            return null;
+
+        Directions neighbourDirection = HexUtils.GetNeighbourDirection(direction);
+
+        for (int i = 0; i < model.landscapes.Length; i++)
+        {
+            if (model.landscapes[i].direction != neighbourDirection)
+                continue;
+
+            return model.landscapes[i];
+        }
+
+        return null;
+    }
+
+    public LandscapeModel GetSideLandscape(Directions direction) 
+    {
+        if (direction == Directions.None)
+            return null;
+
+        if (model == null || (model.landscapes == null || model.landscapes.Length < 1))
+            return null;
+
+        Directions sideDirection = HexUtils.GetSideDirection(direction);
+
+        for (int i = 0; i < model.landscapes.Length; i++)
+        {
+            if (model.landscapes[i].direction != sideDirection)
+                continue;
+
+            return model.landscapes[i];
+        }
+
+        return null;
+    }
+
+    public bool HasAnyLandscape(LandscapeTypes type) 
+    {
+        if (model == null || (model.landscapes == null || model.landscapes.Length < 1))
+            return false;
+
+        foreach (LandscapeModel landscape in model.landscapes)
+        {
+            if (landscape.landscapeType == type)
+                return true;
+        }
+
+        return false;
     }
 
     private void OnDrawGizmosSelected()

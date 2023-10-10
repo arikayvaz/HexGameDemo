@@ -1,4 +1,4 @@
-public enum Landscapes
+public enum LandscapeTypes
 {
     None = -1,
     Empty = 0,

@@ -4,7 +4,7 @@ public abstract class Landscape : MonoBehaviour
 {
     public MeshRenderer meshRenderer = null;
 
-    public abstract Landscapes LandScape { get; }
+    public abstract LandscapeTypes LandScape { get; }
 
     protected Directions direction = Directions.None;
     public Directions Direction => direction;
