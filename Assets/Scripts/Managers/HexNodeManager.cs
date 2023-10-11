@@ -150,6 +150,11 @@ public class HexNodeManager : MonoBehaviour
 
                 neighbourGroupDict.Remove(neighbour.group.groupId);
 
+                foreach (LandscapeModel node in neighbourNodes)
+                {
+                    node.group = landscape.group;
+                }
+
                 neighbour.group = landscape.group;
 
                 landscape.group.AddNode(neighbourNodes);

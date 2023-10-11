@@ -158,7 +158,7 @@ public static class HexUtils
 
     public static LandscapeTypes GetRandomLandscape() 
     {
-        const int LANDSCAPE_VALUE_MIN = 0;
+        const int LANDSCAPE_VALUE_MIN = 1;
         const int LANDSCAPE_VALUE_MAX = 2;
         const int LANDSCAPE_DELTA = 100;
 

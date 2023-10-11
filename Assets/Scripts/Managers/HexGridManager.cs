@@ -123,7 +123,25 @@ public class HexGridManager : MonoBehaviour
 
     public LandscapeModel GetNeighbourHexLandscape(Hex parentHex, Directions landscapeDirection) 
     {
+        /*
         Hex neighbourHex = GetNeighbourHex(parentHex, landscapeDirection);
+
+        if (!hexDict.ContainsValue(neighbourHex))
+            return null;
+
+        */
+        HexTile neighbourHexTile = HetNeighbourHexTile(parentHex, landscapeDirection);
+        //hexTileDict.TryGetValue(neighbourHex, out neighbourHexTile);
+
+        if (neighbourHexTile == null)
+            return null;
+
+        return neighbourHexTile.GetNeighbourLandscape(landscapeDirection);
+    }
+
+    public HexTile HetNeighbourHexTile(Hex hex, Directions direction) 
+    {
+        Hex neighbourHex = GetNeighbourHex(hex, direction);
 
         if (!hexDict.ContainsValue(neighbourHex))
             return null;
@@ -131,10 +149,7 @@ public class HexGridManager : MonoBehaviour
         HexTile neighbourHexTile = null;
         hexTileDict.TryGetValue(neighbourHex, out neighbourHexTile);
 
-        if (neighbourHexTile == null)
-            return null;
-
-        return neighbourHexTile.GetNeighbourLandscape(landscapeDirection);
+        return neighbourHexTile;
     }
 
     public Hex GetNeighbourHex(Hex hex, Directions direction) 
