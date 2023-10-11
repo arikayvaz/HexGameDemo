@@ -8,16 +8,16 @@ public static class HexUtils
     /// Cube coordinate directions. Starts from north and goes clockwise
     /// </summary>
     public static readonly CubeCoordinate[] CubeDirectionCoordinates = {
-        new CubeCoordinate(0, -1, 1), new CubeCoordinate(1, -1, 0), new CubeCoordinate(1, 0, -1),
-        new CubeCoordinate(0, 1, -1), new CubeCoordinate(-1, 1, 0), new CubeCoordinate(-1, 0 , 1)
+        new CubeCoordinate(0, 1, -1), new CubeCoordinate(1, 0 , -1), new CubeCoordinate(1, -1, 0),
+        new CubeCoordinate(0, -1, 1), new CubeCoordinate(-1, 0, 1), new CubeCoordinate(-1, 1, 0)
     };
 
     /// <summary>
     /// Axial coordinate directions. Starts from north and goes clockwise
     /// </summary>
     public static readonly AxialCoordinate[] AxialDirectionCoordinates = {
-        new AxialCoordinate(0, -1), new AxialCoordinate(1, -1), new AxialCoordinate(1, 0),
-        new AxialCoordinate(0, 1), new AxialCoordinate(-1, 1), new AxialCoordinate(-1, 0)
+        new AxialCoordinate(0, 1), new AxialCoordinate(1, 0), new AxialCoordinate(1, -1),
+        new AxialCoordinate(0, -1), new AxialCoordinate(-1, 0), new AxialCoordinate(-1, 1)
     };
 
     /// <summary>
@@ -68,7 +68,7 @@ public static class HexUtils
 
     public static Directions GetNeighbourDirection(Directions direction) 
     {
-        return direction == Directions.None ? Directions.None : (Directions)(5 - (int)direction);
+        return direction == Directions.None ? Directions.None : (Directions)((3 + (int)direction) % 6);
     }
 
     public static Directions GetSideDirection(Directions direction) 
