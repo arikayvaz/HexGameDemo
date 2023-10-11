@@ -4,6 +4,17 @@ using UnityEngine.UIElements;
 
 public static class HexUtils
 {
+    public static readonly Color[] GizmosColors = new Color[]
+    {
+        Color.red,
+        Color.blue,
+        Color.magenta,
+        Color.cyan,
+        Color.yellow,
+        Color.black
+    };
+
+
     /// <summary>
     /// Cube coordinate directions. Starts from north and goes clockwise
     /// </summary>

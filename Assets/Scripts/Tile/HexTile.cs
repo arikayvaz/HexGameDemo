@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -12,6 +11,22 @@ public class HexTile : MonoBehaviour
     {
         this.model = model;
         this.hex = hex;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (model == null)
+            return;
+
+        if (hex == null)
+            return;
+
+        if (HexGridManager.Instance == null)
+            return;
+
+        //DrawNeighbourGizmos();
+        //DrawNeighbourLandscapeGizmos();
+        DrawNodeGizmos();
     }
 
     public LandscapeModel[] Lanscapes => model.landscapes;
@@ -88,13 +103,9 @@ public class HexTile : MonoBehaviour
         return false;
     }
 
-    private void OnDrawGizmosSelected()
-    {
-        //DrawCorners();
-        //DrawEdges();
-    }
+    #region Gizmos
 
-    private void DrawCorners() 
+    private void DrawCornerGizmos() 
     {
         for (int j = 0; j < 6; j++)
         {
@@ -112,7 +123,7 @@ public class HexTile : MonoBehaviour
         }
     }
 
-    private void DrawEdges() 
+    private void DrawEdgeGizmos() 
     {
         for (int j = 0; j < 6; j++)
         {
@@ -134,5 +145,84 @@ public class HexTile : MonoBehaviour
             Handles.Label(pointPos, $"{j}_{angle_deg}");
         }
     }
+
+    private void DrawNeighbourGizmos()
+    {
+        Vector3 centerPos = transform.position;
+        centerPos.y += 0.2f;
+
+        Gizmos.color = Color.blue;
+        Gizmos.DrawSphere(centerPos, 0.1f);
+
+        HexTile[] neighbours = HexGridManager.Instance.GetAllNeighbourHexTiles(hex);
+
+        if (neighbours == null || neighbours.Length < 1)
+            return;
+
+        for (int i = 0; i < neighbours.Length; i++)
+        {
+            HexTile neighbour = neighbours[i];
+
+            if (neighbour == null)
+                continue;
+
+            Vector3 pos = neighbour.transform.position;
+            pos.y += 0.2f;
+
+            Gizmos.color = HexUtils.GizmosColors[i];
+            Gizmos.DrawSphere(pos, 0.1f);
+        }
+    }
+
+    private void DrawNeighbourLandscapeGizmos()
+    {
+        for (int i = 0; i < model.landscapes.Length; i++)
+        {
+            LandscapeModel current = model.landscapes[i];
+            LandscapeModel neighbour = HexGridManager.Instance.GetNeighbourHexLandscape(hex, current.direction);
+
+            Gizmos.color = HexUtils.GizmosColors[i];
+
+            Vector3 cp = current.position;
+            cp.y += 0.2f;
+
+            Gizmos.DrawSphere(cp, 0.1f);
+
+            if (neighbour == null)
+                continue;
+
+            Vector3 np = neighbour.position;
+            np.y += 0.2f;
+
+            Gizmos.DrawSphere(np, 0.1f);
+        }
+    }
+
+    private void DrawNodeGizmos() 
+    {
+        for (int i = 0; i < model.landscapes.Length; i++)
+        {
+            LandscapeModel landscape = model.landscapes[i];
+
+            if (!landscape.HasGroup)
+                continue;
+
+            Gizmos.color = HexUtils.GizmosColors[i];
+            for (int j = 0; j < landscape.group.nodes.Count; j++)
+            {
+                LandscapeModel node = landscape.group.nodes[j];
+
+                Vector3 pos = node.position;
+                pos.y += 0.2f + (i * 0.1f);
+
+                Gizmos.DrawSphere(pos, 0.1f);
+
+            }//for (int j = 0; j < landscape.group.nodes.Count; j++)
+
+
+        }//for (int i = 0; i < model.landscapes.Length; i++)
+    }
+
+    #endregion
 
 }

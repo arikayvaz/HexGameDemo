@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 public class HexGridManager : MonoBehaviour
@@ -102,7 +103,7 @@ public class HexGridManager : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        //DrawHexGizmos();
+        DrawHexGizmos();
     }
 
     public GameObject GetLandscapeGameObject(LandscapeTypes landscape, Transform trParent) 
@@ -153,6 +154,34 @@ public class HexGridManager : MonoBehaviour
         hexDict.TryGetValue(neighbourCoord, out neighbour);
 
         return neighbour;
+    }
+
+    public HexTile[] GetAllNeighbourHexTiles(Hex parentHex) 
+    {
+        if (hexDict == null || hexDict.Count < 1)
+            return null;
+
+        if (hexTileDict == null || hexTileDict.Count < 1)
+            return null;
+
+        CubeCoordinate[] coords = HexUtils.GetAllCubeCoordinateNeighbours(parentHex.cubeCoord);
+        HexTile[] hexTiles = new HexTile[coords.Length];
+
+        for (int i = 0; i < coords.Length; i++)
+        {
+            if (!hexDict.ContainsKey(coords[i]))
+                continue;
+
+            Hex hex;
+            hexDict.TryGetValue(coords[i], out hex);
+
+            if (!hexTileDict.ContainsKey(hex))
+                continue;
+
+            hexTileDict.TryGetValue(hex, out hexTiles[i]);
+        }
+
+        return hexTiles;
     }
 
     private void InitHexSettings()
@@ -210,36 +239,25 @@ public class HexGridManager : MonoBehaviour
 
     private void DrawHexGizmos() 
     {
-        if (hexDict == null || hexDict.Count < 1)
+        if (hexTileDict == null || hexTileDict.Count < 1)
             return;
 
-        if (hexSettings == null)
-            return;
-        /*
-        for (int i = 0; i < hexList.Count; i++)
+        int index = 0;
+
+        foreach (HexTile tile in hexTileDict.Values)
         {
-            Hex hex = hexList[i];
+            Vector3 pos = tile.transform.position;
 
-            Vector3 centerPos = HexUtils.GetPositionFromAxialCoordinate(hex.axialCoord, hexSettings.width, hexSettings.height);
-            centerPos.y = 0.25f;
+            pos.y += 0.1f;
 
-            Gizmos.DrawWireCube(centerPos, Vector3.one * 0.1f);
+            GUIStyle style = EditorStyles.boldLabel;
+            style.fontSize = 18;
+            style.fontStyle = FontStyle.Bold;
 
-            for (int j = 0; j < 6; j++)
-            {
-                float angle_deg = 60 * j;
-                float angle_rad = Mathf.PI / 180f * angle_deg;
+            Handles.Label(pos, index.ToString(), style);
 
-                Vector3 pointPos = Vector3.zero;
-
-                pointPos.x = centerPos.x + hexSettings.hexSize * Mathf.Cos(angle_rad);
-                pointPos.y = 0.25f;
-                pointPos.z = centerPos.z + hexSettings.hexSize * Mathf.Sin(angle_rad);
-
-                Gizmos.DrawWireSphere(pointPos, 0.1f);
-            }
+            index++;
         }
-        */
     }
 
     /*
