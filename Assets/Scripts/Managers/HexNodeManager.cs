@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
@@ -35,22 +37,23 @@ public class HexNodeManager : MonoBehaviour
         ReSortTileDict();
     }
 
-    Dictionary<int, Dictionary<int, NodeGroup>> tileNodeDict = new Dictionary<int, Dictionary<int, NodeGroup>>();
+    Dictionary<int, TileNodeGroup> tileNodeDict = new Dictionary<int, TileNodeGroup>();
 
     private void GroupNodes() 
     {
         List<HexTile> searchedHexTiles = new List<HexTile>();
 
         int tileIndex = 0;
-        int groupIndex = 0;
+        //int groupIndex = 0;
 
         foreach (HexTile tile in HexGridManager.Instance.HextTileDict.Values)
         {
             if (searchedHexTiles.Contains(tile))
                 continue;
 
-            groupIndex = 0;
-            Dictionary<int, NodeGroup> groupDict = new Dictionary<int, NodeGroup>();
+            //groupIndex = 0;
+            //Dictionary<int, NodeGroup> groupDict = new Dictionary<int, NodeGroup>();
+            TileNodeGroup tileNodeGroup = new TileNodeGroup();
 
             for (int i = 0; i < tile.Lanscapes.Length; i++)
             {
@@ -68,17 +71,19 @@ public class HexNodeManager : MonoBehaviour
                 //Check center
                 if (!center.HasGroup)
                 {
-                    NodeGroup group = new NodeGroup(tileIndex, groupIndex);
+                    NodeGroup group = new NodeGroup(tileIndex, tileNodeGroup.GroupIndex(center.landscapeType));
                     center.group = group;
                     group.AddNode(center);
 
-                    groupDict.Add(groupIndex, group);
-                    groupIndex++;
+                    //groupDict.Add(groupIndex, group);
+                    //groupIndex++;
+                    tileNodeGroup.AddNodeGroup(center.landscapeType, group);
                 }
 
                 //Check right
-                if (right.landscapeType == LandscapeTypes.Forest)
+                if (right.landscapeType == center.landscapeType)
                 {
+                    /*
                     if (right.HasGroup)
                     {
                         List<LandscapeModel> rightNodes = right.group.nodes;
@@ -92,13 +97,16 @@ public class HexNodeManager : MonoBehaviour
                         center.group.AddNode(right);
 
                     }//if (right.HasGroup)
+                    */
+                    GroupSideLandscape(center, right);
 
 
                 }//if (right.landscapeType == LandscapeTypes.Forest)
 
                 //Check left
-                if (left.landscapeType == LandscapeTypes.Forest)
+                if (left.landscapeType == center.landscapeType)
                 {
+                    /*
                     if (left.HasGroup)
                     {
                         List<LandscapeModel> leftNodes = left.group.nodes;
@@ -112,7 +120,8 @@ public class HexNodeManager : MonoBehaviour
                         center.group.AddNode(left);
 
                     }//if (left.HasGroup)
-
+                    */
+                    GroupSideLandscape(center, left);
 
                 }//if (left.landscapeType == LandscapeTypes.Forest)
 
@@ -121,11 +130,26 @@ public class HexNodeManager : MonoBehaviour
 
             searchedHexTiles.Add(tile);
 
-            tileNodeDict.Add(tileIndex, groupDict);
+            tileNodeDict.Add(tileIndex, tileNodeGroup);
 
             tileIndex++;
 
         }//foreach (HexTile tile in HexGridManager.Instance.HextTileDict.Values)
+    }
+
+    private void GroupSideLandscape(LandscapeModel center, LandscapeModel side) 
+    {
+        if (side.HasGroup)
+        {
+            List<LandscapeModel> sideNodes = side.group.nodes;
+
+            side.group = center.group;
+            center.group.AddNode(sideNodes);
+            return;
+        }
+
+        side.group = center.group;
+        center.group.AddNode(side);
     }
 
     private void MergeNodes() 
@@ -175,6 +199,7 @@ public class HexNodeManager : MonoBehaviour
 
                 if (tileNodeDict.ContainsKey(tileId))
                 {
+                    /*
                     Dictionary<int, NodeGroup> nodeGroupDict = null;
                     tileNodeDict.TryGetValue(tileId, out nodeGroupDict);
 
@@ -187,17 +212,37 @@ public class HexNodeManager : MonoBehaviour
                         nodeGroupDict.Add(groupId, landscape.group);
 
                     }//if (nodeGroupDict.ContainsKey(groupId))
+                    */
+
+                    TileNodeGroup tileNodeGroup = null;
+                    tileNodeDict.TryGetValue(tileId, out tileNodeGroup);
+
+                    if (tileNodeGroup.ContainsKey(landscape.landscapeType, groupId))
+                        continue;
+
+                    tileNodeGroup.AddNodeGroup(landscape.landscapeType, groupId, landscape.group);
                 }
                 else
                 {
+                    /*
                     Dictionary<int, NodeGroup> nodeGroupDict = new Dictionary<int, NodeGroup>();
                     nodeGroupDict.Add(groupId, landscape.group);
                     tileNodeDict.Add(tileId, nodeGroupDict);
+                    */
+
+                    TileNodeGroup tileNodeGroup = new TileNodeGroup();
+                    tileNodeGroup.AddNodeGroup(landscape.landscapeType, groupId, landscape.group);
+                    tileNodeDict.Add(tileId, tileNodeGroup);
 
                 }//if (tileNodeDict.ContainsKey(tileId))
 
             }//foreach (LandscapeModel landscape in tile.Lanscapes) 
         }//foreach (HexTile tile in HexGridManager.Instance.HextTileDict.Values)
+    }
+
+    private void SetResourceNodes() 
+    {
+
     }
 
     private void DrawDebugGizmo() 
@@ -210,30 +255,21 @@ public class HexNodeManager : MonoBehaviour
         style.fontStyle = FontStyle.Bold;
         style.normal.textColor = Color.blue;
 
-        foreach (var groupDict in tileNodeDict.Values)
+        foreach (var tileNodeGroup in tileNodeDict.Values)
         {
-            foreach (var nodeGroup in groupDict.Values)
+            foreach (var nodeGroup in tileNodeGroup.ForestNodeGroups)
             {
-                /*
-                Vector3 pos = nodeGroup.nodes[0].position;
-                pos.y += 0.25f;
-
-                string text = $"{nodeGroup.tileId}-{nodeGroup.groupId}";
-
-                Handles.Label(pos, text, style);
-                */
-
                 foreach (var node in nodeGroup.nodes)
                 {
                     Vector3 pos = node.position;
                     pos.y += 0.25f;
 
                     string text = $"{node.group.tileId}-{node.group.groupId}";
-
                     Handles.Label(pos, text, style);
                 }
             }
         }
+
     }
 
 }
@@ -282,4 +318,98 @@ public class NodeGroup
     {
         return tileId == group.tileId && groupId == group.groupId;
     }
+}
+
+public class TileNodeGroup 
+{
+    NodeCollection forestNodeCollection;
+    NodeCollection fieldNodeCollection;
+
+    public IEnumerable<NodeGroup> ForestNodeGroups => forestNodeCollection.NodeGroups;
+    public IEnumerable<NodeGroup> FieldNodeGroups => fieldNodeCollection.NodeGroups;
+
+    public TileNodeGroup()
+    {
+        forestNodeCollection = new NodeCollection();
+        fieldNodeCollection = new NodeCollection();
+    }
+
+    public int GroupIndex(LandscapeTypes landscapeType) 
+    {
+        switch (landscapeType)
+        {
+            case LandscapeTypes.Forest:
+                return forestNodeCollection.groupIndex;
+            case LandscapeTypes.Field:
+                return fieldNodeCollection.groupIndex;
+            default:
+                return -1;
+        }
+    }
+
+    public void AddNodeGroup(LandscapeTypes landscapeType, NodeGroup group) 
+    {
+        switch (landscapeType)
+        {
+            case LandscapeTypes.Forest:
+                forestNodeCollection.AddNodeGroup(group);
+                break;
+            case LandscapeTypes.Field:
+                fieldNodeCollection.AddNodeGroup(group);
+                break;
+        }
+    }
+
+    public void AddNodeGroup(LandscapeTypes landscapeType, int groupId, NodeGroup group) 
+    {
+        switch (landscapeType)
+        {
+            case LandscapeTypes.Forest:
+                forestNodeCollection.AddNodeGroup(groupId, group);
+                break;
+            case LandscapeTypes.Field:
+                fieldNodeCollection.AddNodeGroup(groupId, group);
+                break;
+        }
+    }
+
+    public bool ContainsKey(LandscapeTypes landscapeType, int groupId) 
+    {
+        switch (landscapeType)
+        {
+            case LandscapeTypes.Forest:
+                return forestNodeCollection.ContainsKey(groupId);
+            case LandscapeTypes.Field:
+                return fieldNodeCollection.ContainsKey(groupId);
+            default:
+                return false;
+        }
+    }
+}
+
+public class NodeCollection 
+{
+    public int groupIndex;
+    public Dictionary<int, NodeGroup> groupDict;
+
+    public IEnumerable<NodeGroup> NodeGroups => groupDict.Values;
+
+    public NodeCollection()
+    {
+        groupIndex = 0;
+        groupDict = new Dictionary<int, NodeGroup>();
+    }
+
+    public void AddNodeGroup(NodeGroup group) 
+    {
+        groupDict.Add(groupIndex, group);
+        groupIndex++;
+    }
+
+    public void AddNodeGroup(int groupIndex, NodeGroup group) 
+    {
+        groupDict.Add(groupIndex, group);
+    }
+
+    public bool ContainsKey(int groupId) => groupDict.ContainsKey(groupId);
 }
