@@ -23,7 +23,7 @@ public class HexNodeManager : MonoBehaviour
     private void OnDrawGizmos()
     {
         //DrawMergeGizmo();
-        DrawResourceNodeGizmo();
+        //DrawResourceNodeGizmo();
     }
 
     public void SetHexNodes() 
@@ -41,15 +41,12 @@ public class HexNodeManager : MonoBehaviour
         List<HexTile> searchedHexTiles = new List<HexTile>();
 
         int tileIndex = 0;
-        //int groupIndex = 0;
 
         foreach (HexTile tile in HexGridManager.Instance.HextTileDict.Values)
         {
             if (searchedHexTiles.Contains(tile))
                 continue;
 
-            //groupIndex = 0;
-            //Dictionary<int, NodeGroup> groupDict = new Dictionary<int, NodeGroup>();
             TileNodeGroup tileNodeGroup = new TileNodeGroup();
 
             for (int i = 0; i < tile.Lanscapes.Length; i++)
@@ -72,56 +69,16 @@ public class HexNodeManager : MonoBehaviour
                     center.group = group;
                     group.AddNode(center);
 
-                    //groupDict.Add(groupIndex, group);
-                    //groupIndex++;
                     tileNodeGroup.AddNodeGroup(center.landscapeType, group);
                 }
 
                 //Check right
                 if (right.landscapeType == center.landscapeType)
-                {
-                    /*
-                    if (right.HasGroup)
-                    {
-                        List<LandscapeModel> rightNodes = right.group.nodes;
-
-                        right.group = center.group;
-                        right.group.AddNode(rightNodes);
-                    }
-                    else
-                    {
-                        right.group = center.group;
-                        center.group.AddNode(right);
-
-                    }//if (right.HasGroup)
-                    */
                     GroupSideLandscape(center, right);
-
-
-                }//if (right.landscapeType == LandscapeTypes.Forest)
 
                 //Check left
                 if (left.landscapeType == center.landscapeType)
-                {
-                    /*
-                    if (left.HasGroup)
-                    {
-                        List<LandscapeModel> leftNodes = left.group.nodes;
-
-                        left.group = center.group;
-                        left.group.AddNode(leftNodes);
-                    }
-                    else
-                    {
-                        left.group = center.group;
-                        center.group.AddNode(left);
-
-                    }//if (left.HasGroup)
-                    */
                     GroupSideLandscape(center, left);
-
-                }//if (left.landscapeType == LandscapeTypes.Forest)
-
 
             }//for (int i = 0; i < tile.Lanscapes.Length; i++)
 
@@ -165,10 +122,6 @@ public class HexNodeManager : MonoBehaviour
 
                 List<LandscapeModel> neighbourNodes = neighbour.group.nodes;
 
-                //Dictionary<int, NodeGroup> neighbourGroupDict = null;
-                //tileNodeDict.TryGetValue(neighbour.group.tileId, out neighbourGroupDict);
-                //neighbourGroupDict.Remove(neighbour.group.groupId);
-
                 foreach (LandscapeModel node in neighbourNodes)
                     node.group = landscape.group;
 
@@ -196,21 +149,6 @@ public class HexNodeManager : MonoBehaviour
 
                 if (tileNodeDict.ContainsKey(tileId))
                 {
-                    /*
-                    Dictionary<int, NodeGroup> nodeGroupDict = null;
-                    tileNodeDict.TryGetValue(tileId, out nodeGroupDict);
-
-                    if (nodeGroupDict.ContainsKey(groupId))
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        nodeGroupDict.Add(groupId, landscape.group);
-
-                    }//if (nodeGroupDict.ContainsKey(groupId))
-                    */
-
                     TileNodeGroup tileNodeGroup = null;
                     tileNodeDict.TryGetValue(tileId, out tileNodeGroup);
 
@@ -221,12 +159,6 @@ public class HexNodeManager : MonoBehaviour
                 }
                 else
                 {
-                    /*
-                    Dictionary<int, NodeGroup> nodeGroupDict = new Dictionary<int, NodeGroup>();
-                    nodeGroupDict.Add(groupId, landscape.group);
-                    tileNodeDict.Add(tileId, nodeGroupDict);
-                    */
-
                     TileNodeGroup tileNodeGroup = new TileNodeGroup();
                     tileNodeGroup.AddNodeGroup(landscape.landscapeType, groupId, landscape.group);
                     tileNodeDict.Add(tileId, tileNodeGroup);
@@ -310,6 +242,7 @@ public class HexNodeManager : MonoBehaviour
         if (fieldResourceNodeDict == null || fieldResourceNodeDict.Count < 1)
             return;
 
+        int index = 0;
         foreach (NodeGroup nodeGroup in forestResourceNodeDict.Values)
         {
             Gizmos.color = Color.red;
@@ -317,14 +250,27 @@ public class HexNodeManager : MonoBehaviour
             pos.y += 0.5f;
             Gizmos.DrawCube(pos, Vector3.one * 0.1f);
 
-            Gizmos.color = Color.green;
+            Gizmos.color = HexUtils.GizmosColors[index % HexUtils.GizmosColors.Length];//Color.green;
+            int nodeIndex = 0;
             foreach (LandscapeModel node in nodeGroup.nodes)
             {
                 pos = node.position;
                 pos.y += 0.25f;
 
                 Gizmos.DrawSphere(pos, 0.1f);
+
+                if (nodeIndex > 0)
+                {
+                    Vector3 prevNodePos = nodeGroup.nodes[nodeIndex - 1].position;
+                    prevNodePos.y += 0.25f;
+
+                    Gizmos.DrawLine(prevNodePos, pos);
+                }
+
+                nodeIndex++;
             }
+
+            index++;
         }
     }
 
