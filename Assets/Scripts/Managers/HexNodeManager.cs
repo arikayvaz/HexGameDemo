@@ -22,19 +22,16 @@ public class HexNodeManager : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        DrawDebugGizmo();
+        //DrawMergeGizmo();
+        DrawResourceNodeGizmo();
     }
 
     public void SetHexNodes() 
     {
-        SetForestHexNodes();
-    }
-
-    private void SetForestHexNodes() 
-    {
         GroupNodes();
         MergeNodes();
         ReSortTileDict();
+        SetResourceNodes();
     }
 
     Dictionary<int, TileNodeGroup> tileNodeDict = new Dictionary<int, TileNodeGroup>();
@@ -62,7 +59,7 @@ public class HexNodeManager : MonoBehaviour
 
                 LandscapeModel center = tile.Lanscapes[i];
 
-                if (center.landscapeType != LandscapeTypes.Forest)
+                if (center.landscapeType == LandscapeTypes.Empty || center.landscapeType == LandscapeTypes.None)
                     continue;
 
                 LandscapeModel right = tile.Lanscapes[rightIndex];
@@ -240,12 +237,45 @@ public class HexNodeManager : MonoBehaviour
         }//foreach (HexTile tile in HexGridManager.Instance.HextTileDict.Values)
     }
 
+    private Dictionary<(int, int), NodeGroup> forestResourceNodeDict = new Dictionary<(int, int), NodeGroup>();
+    private Dictionary<(int, int), NodeGroup> fieldResourceNodeDict = new Dictionary<(int, int), NodeGroup>();
+
     private void SetResourceNodes() 
     {
+        if (tileNodeDict == null || tileNodeDict.Count < 1)
+            return;
 
+        foreach (TileNodeGroup tileNodeGroup in tileNodeDict.Values)
+        {
+            //Set Forest Resource Nodes
+            foreach (NodeGroup nodeGroup in tileNodeGroup.ForestNodeGroups)
+            {
+                (int, int) key = (nodeGroup.tileId, nodeGroup.groupId);
+
+                if (forestResourceNodeDict.ContainsKey(key))
+                    continue;
+
+                forestResourceNodeDict.Add(key, nodeGroup);
+
+            }//foreach (NodeGroup nodeGroup in tileNodeGroup.ForestNodeGroups)
+
+            //Set Field Resource Nodes
+            foreach (NodeGroup nodeGroup in tileNodeGroup.FieldNodeGroups)
+            {
+                (int, int) key = (nodeGroup.tileId, nodeGroup.groupId);
+
+                if (fieldResourceNodeDict.ContainsKey(key))
+                    continue;
+
+                fieldResourceNodeDict.Add(key, nodeGroup);
+
+            }//foreach (NodeGroup nodeGroup in tileNodeGroup.ForestNodeGroups)
+
+
+        }//foreach (TileNodeGroup tileNodeGroup in tileNodeDict.Values)
     }
 
-    private void DrawDebugGizmo() 
+    private void DrawMergeGizmo() 
     {
         if (tileNodeDict == null || tileNodeDict.Count < 1)
             return;
@@ -270,6 +300,32 @@ public class HexNodeManager : MonoBehaviour
             }
         }
 
+    }
+
+    private void DrawResourceNodeGizmo() 
+    {
+        if (forestResourceNodeDict == null || forestResourceNodeDict.Count < 1)
+            return;
+
+        if (fieldResourceNodeDict == null || fieldResourceNodeDict.Count < 1)
+            return;
+
+        foreach (NodeGroup nodeGroup in forestResourceNodeDict.Values)
+        {
+            Gizmos.color = Color.red;
+            Vector3 pos = nodeGroup.nodes[0].position;
+            pos.y += 0.5f;
+            Gizmos.DrawCube(pos, Vector3.one * 0.1f);
+
+            Gizmos.color = Color.green;
+            foreach (LandscapeModel node in nodeGroup.nodes)
+            {
+                pos = node.position;
+                pos.y += 0.25f;
+
+                Gizmos.DrawSphere(pos, 0.1f);
+            }
+        }
     }
 
 }
