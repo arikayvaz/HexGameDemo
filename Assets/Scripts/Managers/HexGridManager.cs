@@ -20,24 +20,28 @@ public class HexGridManager : MonoBehaviour
 
     private HexSettings hexSettings = null;
     private Dictionary<CubeCoordinate, Hex> hexDict = null;
-    private Dictionary<Hex, HexTile> hexTileDict = null;
 
-    public Dictionary<Hex, HexTile> HextTileDict => hexTileDict;
-    public Dictionary<CubeCoordinate, Hex> HexDict => hexDict;
+    private Dictionary<Hex, HexTile> placedHexTileDict = null;
+    public Dictionary<Hex, HexTile> PlacedHexTileDict => placedHexTileDict;
+
+    private Dictionary<Hex, HexTile> placeableHexTileDict = null;
+    public Dictionary<Hex, HexTile> PlaceableHexTileDict => placeableHexTileDict;
 
     public HexSettings HexSettings => hexSettings;
+
+    public float HexSize => hexSize;
 
     private void Awake()
     {
         Instance = this;
-        InitHexSettings();
-        SetHexes();
-        SpawnHexes();
+        //InitHexSettings();
+        //SetHexes();
+        //SpawnHexes();
     }
 
     private void Start()
     {
-        HexNodeManager.Instance.SetHexNodes();
+        //HexNodeManager.Instance.SetHexNodes();
     }
 
     private void OnDestroy()
@@ -59,7 +63,7 @@ public class HexGridManager : MonoBehaviour
 
                 AxialCoordinate coord = HexUtils.GetAxialCoordinateFromWorldPosition(hitPos, hexSize);
 
-                if (hexDict != null && hexDict.Count > 0 && hexTileDict != null && hexTileDict.Count > 1)
+                if (hexDict != null && hexDict.Count > 0 && placedHexTileDict != null && placedHexTileDict.Count > 1)
                 {
                     foreach (Hex hex in hexDict.Values)
                     {
@@ -70,7 +74,7 @@ public class HexGridManager : MonoBehaviour
 
                         HexTile hexTile;
 
-                        hexTileDict.TryGetValue(hex, out hexTile);
+                        placedHexTileDict.TryGetValue(hex, out hexTile);
 
                         if (hexTile == null)
                             continue;
@@ -84,13 +88,13 @@ public class HexGridManager : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.G))
         {
-            if (hexDict != null && hexDict.Count > 0 && hexTileDict != null && hexTileDict.Count > 1)
+            if (hexDict != null && hexDict.Count > 0 && placedHexTileDict != null && placedHexTileDict.Count > 1)
             {
                 foreach (Hex hex in hexDict.Values)
                 {
                     HexTile hexTile;
 
-                    hexTileDict.TryGetValue(hex, out hexTile);
+                    placedHexTileDict.TryGetValue(hex, out hexTile);
 
                     if (hexTile == null)
                         continue;
@@ -103,7 +107,7 @@ public class HexGridManager : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        DrawHexGizmos();
+        //DrawHexGizmos();
     }
 
     public GameObject GetLandscapeGameObject(LandscapeTypes landscape, Transform trParent) 
@@ -147,7 +151,7 @@ public class HexGridManager : MonoBehaviour
             return null;
 
         HexTile neighbourHexTile = null;
-        hexTileDict.TryGetValue(neighbourHex, out neighbourHexTile);
+        placedHexTileDict.TryGetValue(neighbourHex, out neighbourHexTile);
 
         return neighbourHexTile;
     }
@@ -157,7 +161,7 @@ public class HexGridManager : MonoBehaviour
         if (hexDict == null || hexDict.Count < 1)
             return null;
 
-        if (hexTileDict == null || hexTileDict.Count < 1)
+        if (placedHexTileDict == null || placedHexTileDict.Count < 1)
             return null;
 
         CubeCoordinate neighbourCoord = HexUtils.GetCubeCoordinateNeighbour(hex.cubeCoord, direction);
@@ -176,7 +180,7 @@ public class HexGridManager : MonoBehaviour
         if (hexDict == null || hexDict.Count < 1)
             return null;
 
-        if (hexTileDict == null || hexTileDict.Count < 1)
+        if (placedHexTileDict == null || placedHexTileDict.Count < 1)
             return null;
 
         CubeCoordinate[] coords = HexUtils.GetAllCubeCoordinateNeighbours(parentHex.cubeCoord);
@@ -190,21 +194,21 @@ public class HexGridManager : MonoBehaviour
             Hex hex;
             hexDict.TryGetValue(coords[i], out hex);
 
-            if (!hexTileDict.ContainsKey(hex))
+            if (!placedHexTileDict.ContainsKey(hex))
                 continue;
 
-            hexTileDict.TryGetValue(hex, out hexTiles[i]);
+            placedHexTileDict.TryGetValue(hex, out hexTiles[i]);
         }
 
         return hexTiles;
     }
 
-    private void InitHexSettings()
+    public void InitHexSettings()
     {
         hexSettings = new HexSettings(hexSize, mapSize);
     }
 
-    private void SetHexes()
+    public void SetHexes()
     {
         if (hexSettings == null)
             return;
@@ -224,9 +228,12 @@ public class HexGridManager : MonoBehaviour
                 hexDict.Add(hex.cubeCoord, hex);
             }//for (int r = r1; r <= r2; r++)
         }//for (int q = -mapLength; q <= mapLength; q++)
+
+        placedHexTileDict = new Dictionary<Hex, HexTile>();
+        placeableHexTileDict = new Dictionary<Hex, HexTile>();
     }
 
-    private void SpawnHexes()
+    public void SpawnCenterHex()
     {
         if (hexSettings == null)
             return;
@@ -234,32 +241,55 @@ public class HexGridManager : MonoBehaviour
         if (hexDict == null || hexDict.Count < 1)
             return;
 
-        hexTileDict = new Dictionary<Hex, HexTile>();
+        if (placedHexTileDict == null)
+            return;
 
-        foreach (Hex hex in hexDict.Values)
+        CubeCoordinate centerHexCoord = new CubeCoordinate(0, 0, 0);
+        Hex centerHex;
+        hexDict.TryGetValue(centerHexCoord, out centerHex);
+        Vector3 centerHexPos = HexUtils.GetPositionFromAxialCoordinate(centerHex.axialCoord, hexSettings.width, hexSettings.height);
+        HexTileModel centerHexTileModel = HexUtils.GetRandomLandscapeHexTileModel(centerHex);
+
+        HexTile centerHexTile = Instantiate<HexTile>(hexTilePrefab);
+        centerHexTile.InitTileAsPlaced(centerHexTileModel, centerHex, centerHexPos);
+        placedHexTileDict.Add(centerHex, centerHexTile);
+
+        CubeCoordinate[] neighbourCoordinates = HexUtils.GetAllCubeCoordinateNeighbours(centerHexCoord);
+        Hex[] neighbourHexes = new Hex[neighbourCoordinates.Length];
+        for (int i = 0; i < neighbourCoordinates.Length; i++)
+            hexDict.TryGetValue(neighbourCoordinates[i], out neighbourHexes[i]);
+
+        foreach (Hex neighbourHex in neighbourHexes)
         {
-            Vector3 pos = HexUtils.GetPositionFromAxialCoordinate(hex.axialCoord, hexSettings.width, hexSettings.height);
+            if(!hexDict.ContainsValue(neighbourHex))
+                continue;
 
+            Vector3 pos = HexUtils.GetPositionFromAxialCoordinate(neighbourHex.axialCoord, hexSettings.width, hexSettings.height);
             HexTile hexTile = Instantiate<HexTile>(hexTilePrefab);
-
-            hexTile.InitTile(HexUtils.GetRandomLandscapeHexTileModel(hex), hex);
-
-            hexTile.transform.position = pos;
-
-            hexTile.SpawnLandscapes();
-
-            hexTileDict.Add(hex, hexTile);
+            hexTile.InitTileAsPlaceable(neighbourHex, pos);
+            placeableHexTileDict.Add(neighbourHex, hexTile);
         }
+    }
+
+    public Hex GetHex(AxialCoordinate coord) 
+    {
+        CubeCoordinate cubeCoord = HexUtils.AxialToCubeCoordinate(coord);
+        Hex hex = new Hex(int.MinValue, int.MinValue);
+
+        if (hexDict != null && hexDict.Count > 0)
+            hexDict.TryGetValue(cubeCoord, out hex);
+
+        return hex;
     }
 
     private void DrawHexGizmos() 
     {
-        if (hexTileDict == null || hexTileDict.Count < 1)
+        if (placedHexTileDict == null || placedHexTileDict.Count < 1)
             return;
 
         int index = 0;
 
-        foreach (HexTile tile in hexTileDict.Values)
+        foreach (HexTile tile in placedHexTileDict.Values)
         {
             Vector3 pos = tile.transform.position;
 
@@ -274,30 +304,4 @@ public class HexGridManager : MonoBehaviour
             index++;
         }
     }
-
-    /*
-    private void InitHexagonalGrid() 
-    {
-        /*
-        int mapLength = Mathf.Max(mapSize.x, mapSize.y);
-        Vector3 pos = Vector3.zero;
-
-        for (int q = -mapLength; q <= mapLength; q++)
-        {
-            int r1 = Mathf.Max(-mapLength, -q-mapLength);
-            int r2 = Mathf.Min(mapLength, -q+mapLength);
-
-            for (int r = r1; r <= r2; r++)
-            {
-                pos.x = hexSize * 3.0f / 2.0f * q;
-                pos.z = hexSize * Mathf.Sqrt(3.0f) * (r + q / 2.0f);
-
-                GameObject goHex = Instantiate(goHexPrefab);
-                goHex.name = $"Hex({q},{r})";
-                goHex.transform.position = pos;
-            }
-        }
-        
-    }
-        */
 }

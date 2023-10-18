@@ -3,15 +3,72 @@ using UnityEngine;
 
 public class HexTile : MonoBehaviour
 {
+    [SerializeField] MeshRenderer meshRenderer = null;
+    [SerializeField] Material matPlaced = null;
+    [SerializeField] Material matPlaceable = null;
 
     private HexTileModel model;
     public Hex hex;
 
-    public void InitTile(HexTileModel model, Hex hex) 
+    public enum PlaceStates { None, Placeable, Placed }
+    public PlaceStates PlaceState { get; private set; } = PlaceStates.None;
+
+    public bool IsPlaceable => PlaceState == PlaceStates.Placeable;
+    public bool IsPlaced => PlaceState == PlaceStates.Placed;
+
+    public void InitTileAsPlaced(HexTileModel model, Hex hex, Vector3 position) 
     {
         this.model = model;
         this.hex = hex;
+        transform.position = position;
+        ChangePlaceState(PlaceStates.Placed);
     }
+
+    public void InitTileAsPlaceable(Hex hex, Vector3 position) 
+    {
+        this.hex = hex;
+        model = null;
+        transform.position = position;
+        ChangePlaceState(PlaceStates.Placeable);
+    }
+
+    private void ChangePlaceState(PlaceStates stateNew) 
+    {
+        switch (stateNew)
+        {
+            case PlaceStates.Placeable:
+                EnterStatePlaceable();
+                break;
+            case PlaceStates.Placed:
+                EnterStatePlaced();
+                break;
+        }
+
+        PlaceState = stateNew;
+    }
+
+    #region States
+
+    #region State Placeable
+
+    private void EnterStatePlaceable()
+    {
+        SetPlaceableHexVisual();
+    }
+
+    #endregion
+
+    #region State Placed
+
+    private void EnterStatePlaced() 
+    {
+        SetPlacedHexVisual();
+        SpawnLandscapes();
+    }
+
+    #endregion
+
+    #endregion
 
     private void OnDrawGizmosSelected()
     {
@@ -101,6 +158,21 @@ public class HexTile : MonoBehaviour
         }
 
         return false;
+    }
+
+    private void SetPlaceableHexVisual() 
+    {
+        UpdateHexVisual(matPlaceable);
+    }
+
+    private void SetPlacedHexVisual() 
+    {
+        UpdateHexVisual(matPlaced);
+    }
+
+    private void UpdateHexVisual(Material mat) 
+    {
+        meshRenderer.materials = new Material[] { mat, mat };
     }
 
     #region Gizmos

@@ -45,6 +45,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8394a885e68b3f442a5dd5ee81843387, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  meshRenderer: {fileID: 672039539740216672}
+  matPlaced: {fileID: 2100000, guid: e7f1a3dea2999bf419139982e9a5f68c, type: 2}
+  matPlaceable: {fileID: 2100000, guid: 67dd1fb73b1108d439f20efbd30f568a, type: 2}
 --- !u!1001 &2202829521262547428
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -126,6 +129,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 571cc8f5ffb9a2d44a32071a0f956b03, type: 3}
+--- !u!23 &672039539740216672 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 571cc8f5ffb9a2d44a32071a0f956b03, type: 3}
+  m_PrefabInstance: {fileID: 2202829521262547428}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1808402758330775055 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 571cc8f5ffb9a2d44a32071a0f956b03, type: 3}

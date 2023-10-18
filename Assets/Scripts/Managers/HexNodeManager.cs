@@ -42,7 +42,7 @@ public class HexNodeManager : MonoBehaviour
 
         int tileIndex = 0;
 
-        foreach (HexTile tile in HexGridManager.Instance.HextTileDict.Values)
+        foreach (HexTile tile in HexGridManager.Instance.PlacedHexTileDict.Values)
         {
             if (searchedHexTiles.Contains(tile))
                 continue;
@@ -108,7 +108,7 @@ public class HexNodeManager : MonoBehaviour
 
     private void MergeNodes() 
     {
-        foreach (HexTile tile in HexGridManager.Instance.HextTileDict.Values) 
+        foreach (HexTile tile in HexGridManager.Instance.PlacedHexTileDict.Values) 
         {
             foreach (LandscapeModel landscape in tile.Lanscapes)
             {
@@ -137,7 +137,7 @@ public class HexNodeManager : MonoBehaviour
     {
         tileNodeDict.Clear();
 
-        foreach (HexTile tile in HexGridManager.Instance.HextTileDict.Values) 
+        foreach (HexTile tile in HexGridManager.Instance.PlacedHexTileDict.Values) 
         {
             foreach (LandscapeModel landscape in tile.Lanscapes) 
             {
