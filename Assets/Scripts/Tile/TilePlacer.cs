@@ -15,6 +15,8 @@ public class TilePlacer : MonoBehaviour
 
         InputManager.OnHoveredHexChanged += OnHoveredHexChanged;
         InputManager.OnPlaceHexInputClicked += OnPlaceHexInputClicked;
+        HexGridManager.OnHexPlaced += OnHexPlaced;
+        InputManager.OnRotateInputClicked += OnRotateInputClicked;
     }
 
     private void OnDestroy()
@@ -24,6 +26,8 @@ public class TilePlacer : MonoBehaviour
 
         InputManager.OnHoveredHexChanged -= OnHoveredHexChanged;
         InputManager.OnPlaceHexInputClicked -= OnPlaceHexInputClicked;
+        HexGridManager.OnHexPlaced -= OnHexPlaced;
+        InputManager.OnRotateInputClicked -= OnRotateInputClicked;
     }
 
     public void SetNextPlaceableHexTileModel() 
@@ -71,6 +75,9 @@ public class TilePlacer : MonoBehaviour
         if (placeModel == null)
             return;
 
+        if (previewTile.IsRotating)
+            return;
+
         HexTile pleaceableTile = HexGridManager.Instance.GetPlaceableHexTile(hex);
 
         if (pleaceableTile == null)
@@ -82,7 +89,31 @@ public class TilePlacer : MonoBehaviour
         lastPreviewPlaceableTile = null;
 
         previewTile.gameObject.SetActive(false);
+        pleaceableTile.SetVisualRotation(previewTile.VisualRotation);
 
         HexGridManager.Instance.PlaceHexTile(pleaceableTile, placeModel);
+    }
+
+    private void OnHexPlaced(HexTile tile) 
+    {
+        SetNextPlaceableHexTileModel();
+
+        previewTile.ResetPreviewTile();
+        previewTile.InitTileAsPreview(placeModel);
+    }
+
+    private void OnRotateInputClicked(RotationDirections rotation) 
+    {
+        if (placeModel == null)
+            return;
+
+        if (previewTile.IsRotating)
+            return;
+
+        previewTile.RotateVisual(rotation, () => 
+        {
+            placeModel.RotateLandscapes(previewTile.transform.position, rotation);
+            previewTile.OnModelUpdated();
+        });
     }
 }

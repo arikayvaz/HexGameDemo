@@ -13,6 +13,7 @@ public class InputManager : MonoBehaviour
 
     public static UnityAction<Hex> OnHoveredHexChanged;
     public static UnityAction<Hex> OnPlaceHexInputClicked;
+    public static UnityAction<RotationDirections> OnRotateInputClicked;
 
     public Vector3 InputPosition { get; private set; } = Vector3.zero;
 
@@ -42,6 +43,19 @@ public class InputManager : MonoBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             CheckPlaceHexInput();
+            return;
+        }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            OnRotateInputClicked?.Invoke(RotationDirections.Clockwise);
+            return;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            OnRotateInputClicked?.Invoke(RotationDirections.Anticlockwise);
+            return;
         }
     }
 

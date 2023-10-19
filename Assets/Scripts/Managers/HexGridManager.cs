@@ -202,21 +202,7 @@ public class HexGridManager : MonoBehaviour
         centerHexTile.InitTileAsPlaced(centerHexTileModel, centerHex, centerHexPos);
         placedHexTileDict.Add(centerHex, centerHexTile);
 
-        CubeCoordinate[] neighbourCoordinates = HexUtils.GetAllCubeCoordinateNeighbours(centerHexCoord);
-        Hex[] neighbourHexes = new Hex[neighbourCoordinates.Length];
-        for (int i = 0; i < neighbourCoordinates.Length; i++)
-            hexDict.TryGetValue(neighbourCoordinates[i], out neighbourHexes[i]);
-
-        foreach (Hex neighbourHex in neighbourHexes)
-        {
-            if(!hexDict.ContainsValue(neighbourHex))
-                continue;
-
-            Vector3 pos = HexUtils.GetPositionFromAxialCoordinate(neighbourHex.axialCoord, hexSettings.width, hexSettings.height);
-            HexTile hexTile = Instantiate<HexTile>(hexTilePrefab);
-            hexTile.InitTileAsPlaceable(neighbourHex, pos);
-            placeableHexTileDict.Add(neighbourHex, hexTile);
-        }
+        CheckPlaceableTiles(centerHexTile);
     }
 
     public Hex GetHex(AxialCoordinate coord) 
@@ -249,6 +235,39 @@ public class HexGridManager : MonoBehaviour
         tile.OnTilePlaced(model);
 
         OnHexPlaced?.Invoke(tile);
+        OnHexTilePlaced(tile);
+    }
+
+    private void OnHexTilePlaced(HexTile tile) 
+    {
+        CheckPlaceableTiles(tile);
+    }
+
+    private void CheckPlaceableTiles(HexTile tile) 
+    {
+        CubeCoordinate[] neighbourCoordinates = HexUtils.GetAllCubeCoordinateNeighbours(tile.hex.cubeCoord);
+
+        Hex[] neighbourHexes = new Hex[neighbourCoordinates.Length];
+
+        for (int i = 0; i < neighbourCoordinates.Length; i++)
+            hexDict.TryGetValue(neighbourCoordinates[i], out neighbourHexes[i]);
+
+        if (neighbourHexes.Length < 1)
+            return;
+
+        foreach (Hex neighbourHex in neighbourHexes)
+        {
+            if (!hexDict.ContainsValue(neighbourHex))
+                continue;
+
+            if (placedHexTileDict.ContainsKey(neighbourHex) || placeableHexTileDict.ContainsKey(neighbourHex))
+                continue;
+
+            Vector3 pos = HexUtils.GetPositionFromAxialCoordinate(neighbourHex.axialCoord, hexSettings.width, hexSettings.height);
+            HexTile hexTile = Instantiate<HexTile>(hexTilePrefab);
+            hexTile.InitTileAsPlaceable(neighbourHex, pos);
+            placeableHexTileDict.Add(neighbourHex, hexTile);
+        }//foreach (Hex neighbourHex in neighbourHexes)
     }
 
     private void DrawHexGizmos() 

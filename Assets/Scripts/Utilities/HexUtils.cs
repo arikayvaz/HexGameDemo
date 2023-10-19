@@ -2,6 +2,12 @@ using UnityEngine;
 using UnityEngine.TextCore.Text;
 using UnityEngine.UIElements;
 
+public enum RotationDirections 
+{
+    Clockwise = 1,
+    Anticlockwise = -1
+}
+
 public static class HexUtils
 {
     public static readonly Color[] GizmosColors = new Color[]
@@ -82,6 +88,7 @@ public static class HexUtils
         return direction == Directions.None ? Directions.None : (Directions)((3 + (int)direction) % 6);
     }
 
+    const int DIRECTION_COUNT = 6;
     public static Directions GetSideDirection(Directions direction) 
     {
         if (direction == Directions.None)
@@ -89,7 +96,42 @@ public static class HexUtils
 
         int dirVal = (int)direction;
 
-        return (Directions)((dirVal + 1) % 6);
+        return (Directions)((dirVal + 1) % DIRECTION_COUNT);
+    }
+
+    public static Directions RotateDirectionClockwise(Directions direction) 
+    {
+        if (direction == Directions.None)
+            return Directions.None;
+
+        int dirVal = (int)direction;
+        int rotatedDirVal = dirVal + 1;
+
+        return (Directions)(rotatedDirVal % DIRECTION_COUNT);
+    }
+
+    public static Directions RotateDirectionAnticlockwise(Directions direction) 
+    {
+        if (direction == Directions.None)
+            return Directions.None;
+
+        int dirVal = (int)direction;
+        int rotatedDirVal = dirVal + 5;
+
+        return (Directions)(rotatedDirVal % DIRECTION_COUNT);
+    }
+
+    public static Directions RotateDirection(Directions direction, RotationDirections rotation) 
+    {
+        switch (rotation)
+        {
+            case RotationDirections.Clockwise:
+                return RotateDirectionClockwise(direction);
+            case RotationDirections.Anticlockwise:
+                return RotateDirectionAnticlockwise(direction);
+            default:
+                return direction;
+        }
     }
 
     public static (float, float) CalculateHexWidthAndHeight(float hexSize)

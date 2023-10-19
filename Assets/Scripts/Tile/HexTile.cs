@@ -1,11 +1,16 @@
+using System.Collections;
 using UnityEditor;
 using UnityEngine;
+using DG.Tweening;
+using System;
 
 public class HexTile : MonoBehaviour
 {
     [SerializeField] MeshRenderer meshRenderer = null;
     [SerializeField] Material matPlaced = null;
     [SerializeField] Material matPlaceable = null;
+    [SerializeField] GameObject goVisualRoot = null;
+    [SerializeField] GameObject goLandscapeRoot = null;
 
     private HexTileModel model;
     public Hex hex;
@@ -17,6 +22,8 @@ public class HexTile : MonoBehaviour
     public bool IsPlaced => PlaceState == PlaceStates.Placed;
 
     private GameObject[] goLandscapes = new GameObject[6];
+
+    public Quaternion VisualRotation => goVisualRoot.transform.rotation;
 
     public void InitTileAsPlaced(HexTileModel model, Hex hex, Vector3 position) 
     {
@@ -51,6 +58,8 @@ public class HexTile : MonoBehaviour
         ChangePlaceState(PlaceStates.Placed);
     }
 
+    #region Place State Machine
+
     private void ChangePlaceState(PlaceStates stateNew) 
     {
         switch (PlaceState)
@@ -62,6 +71,9 @@ public class HexTile : MonoBehaviour
 
         switch (stateNew)
         {
+            case PlaceStates.None:
+                EnterStateNone();
+                break;
             case PlaceStates.Placeable:
                 EnterStatePlaceable();
                 break;
@@ -78,6 +90,16 @@ public class HexTile : MonoBehaviour
 
     #region States
 
+    #region State None
+
+    private void EnterStateNone() 
+    {
+        ResetLandscapeRootRotation();
+        SetVisualRotation(Quaternion.identity);
+    }
+
+    #endregion
+
     #region State Placeable
 
     private void EnterStatePlaceable()
@@ -91,6 +113,7 @@ public class HexTile : MonoBehaviour
 
     private void EnterStatePlaced() 
     {
+        ResetLandscapeRootRotation();
         SetPlacedHexVisual();
         SpawnLandscapes();
     }
@@ -108,6 +131,8 @@ public class HexTile : MonoBehaviour
     {
         DeleteLandscapes();
     }
+
+    #endregion
 
     #endregion
 
@@ -140,7 +165,9 @@ public class HexTile : MonoBehaviour
         {
             LandscapeModel landscape = model.landscapes[i];
 
-            GameObject goLandscape = HexGridManager.Instance.GetLandscapeGameObject(landscape.landscapeType, transform);
+            GameObject goLandscape = HexGridManager.Instance.GetLandscapeGameObject(landscape.landscapeType, goLandscapeRoot.transform);
+
+            Vector3 position = HexUtils.GetLandscapePosition(transform.position, landscape.direction, HexGridManager.Instance.HexSettings.height);
 
             goLandscape.name = $"LS_{landscape.direction}";
             goLandscape.transform.position = HexUtils.GetLandscapePosition(transform.position, landscape.direction, HexGridManager.Instance.HexSettings.height);
@@ -148,7 +175,10 @@ public class HexTile : MonoBehaviour
 
             goLandscape.SetActive(landscape.landscapeType != LandscapeTypes.Empty);
 
-            landscape.position = goLandscape.transform.position;
+            //landscape.Position = goLandscape.transform.position;
+
+            landscape.goLandscape = goLandscape;
+            landscape.UpdatePosition(position);
 
             goLandscapes[i] = goLandscape;
         }
@@ -163,6 +193,11 @@ public class HexTile : MonoBehaviour
         {
             Destroy(goLandscape);
         }
+    }
+
+    public void ResetPreviewTile() 
+    {
+        ChangePlaceState(PlaceStates.None);
     }
 
     public LandscapeModel GetNeighbourLandscape(Directions direction) 
@@ -231,6 +266,44 @@ public class HexTile : MonoBehaviour
     private void UpdateHexVisual(Material mat) 
     {
         meshRenderer.materials = new Material[] { mat, mat };
+    }
+
+    public bool IsRotating { get; private set; } = false;
+
+    public void RotateVisual(RotationDirections rotation, Action onComplete) 
+    {
+        if (IsRotating)
+            return;
+
+        IsRotating = true;
+
+        const float ROTATION_DELTA = 60f;
+        const float ROTATION_ANIM_DURATION = 0.5f;
+
+        Vector3 rotEuler = goVisualRoot.transform.rotation.eulerAngles;
+        rotEuler.y += (int)rotation * ROTATION_DELTA;
+
+        goLandscapeRoot.transform.DORotate(rotEuler, ROTATION_ANIM_DURATION);
+        goVisualRoot.transform.DORotate(rotEuler, ROTATION_ANIM_DURATION).OnComplete(() => 
+        {
+            IsRotating = false;
+            onComplete?.Invoke();
+        });
+    }
+
+    public void SetVisualRotation(Quaternion rotation) 
+    {
+        goVisualRoot.transform.rotation = rotation;
+    }
+
+    public void OnModelUpdated() 
+    {
+        model.OnModelUpdated();
+    }
+
+    public void ResetLandscapeRootRotation() 
+    {
+        goLandscapeRoot.transform.rotation = Quaternion.identity;
     }
 
     #region Gizmos
@@ -313,7 +386,7 @@ public class HexTile : MonoBehaviour
 
             Gizmos.color = HexUtils.GizmosColors[i];
 
-            Vector3 cp = current.position;
+            Vector3 cp = current.Position;
             cp.y += 0.2f;
 
             Gizmos.DrawSphere(cp, 0.1f);
@@ -321,7 +394,7 @@ public class HexTile : MonoBehaviour
             if (neighbour == null)
                 continue;
 
-            Vector3 np = neighbour.position;
+            Vector3 np = neighbour.Position;
             np.y += 0.2f;
 
             Gizmos.DrawSphere(np, 0.1f);
@@ -342,7 +415,7 @@ public class HexTile : MonoBehaviour
             {
                 LandscapeModel node = landscape.group.nodes[j];
 
-                Vector3 pos = node.position;
+                Vector3 pos = node.Position;
                 pos.y += 0.2f + (i * 0.1f);
 
                 Gizmos.DrawSphere(pos, 0.1f);

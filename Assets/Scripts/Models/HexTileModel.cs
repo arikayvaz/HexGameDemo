@@ -1,3 +1,5 @@
+using UnityEngine;
+
 public class HexTileModel
 {
     public Hex hex;
@@ -14,5 +16,35 @@ public class HexTileModel
     public void SetHex(Hex hex) 
     {
         this.hex = hex;
+    }
+
+    public void RotateLandscapes(Vector3 centerPos, RotationDirections rotation) 
+    {
+        if (landscapes == null || landscapes.Length < 1)
+            return;
+
+        foreach (LandscapeModel landscape in landscapes)
+        {
+            landscape.Rotate(rotation);
+
+            Vector3 position = HexUtils.GetLandscapePosition(centerPos, landscape.direction, HexGridManager.Instance.HexSettings.height);
+            landscape.UpdatePosition(position);
+        }
+    }
+
+    public void OnModelUpdated() 
+    {
+        UpdateLandscapeModels();
+    }
+
+    private void UpdateLandscapeModels() 
+    {
+        if (landscapes == null || landscapes.Length < 1)
+            return;
+
+        foreach (LandscapeModel landscape in landscapes)
+        {
+            landscape.OnModelUpdated();
+        }
     }
 }

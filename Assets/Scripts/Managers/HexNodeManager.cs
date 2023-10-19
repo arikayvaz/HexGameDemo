@@ -223,7 +223,7 @@ public class HexNodeManager : MonoBehaviour
             {
                 foreach (var node in nodeGroup.nodes)
                 {
-                    Vector3 pos = node.position;
+                    Vector3 pos = node.Position;
                     pos.y += 0.25f;
 
                     string text = $"{node.group.tileId}-{node.group.groupId}";
@@ -246,7 +246,7 @@ public class HexNodeManager : MonoBehaviour
         foreach (NodeGroup nodeGroup in forestResourceNodeDict.Values)
         {
             Gizmos.color = Color.red;
-            Vector3 pos = nodeGroup.nodes[0].position;
+            Vector3 pos = nodeGroup.nodes[0].Position;
             pos.y += 0.5f;
             Gizmos.DrawCube(pos, Vector3.one * 0.1f);
 
@@ -254,14 +254,14 @@ public class HexNodeManager : MonoBehaviour
             int nodeIndex = 0;
             foreach (LandscapeModel node in nodeGroup.nodes)
             {
-                pos = node.position;
+                pos = node.Position;
                 pos.y += 0.25f;
 
                 Gizmos.DrawSphere(pos, 0.1f);
 
                 if (nodeIndex > 0)
                 {
-                    Vector3 prevNodePos = nodeGroup.nodes[nodeIndex - 1].position;
+                    Vector3 prevNodePos = nodeGroup.nodes[nodeIndex - 1].Position;
                     prevNodePos.y += 0.25f;
 
                     Gizmos.DrawLine(prevNodePos, pos);
