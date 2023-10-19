@@ -9,9 +9,12 @@ public class InputManager : MonoBehaviour
 
     public Hex HoveredHex { get; private set; }
 
-    private readonly LayerMask InputMovementLayerMask = LayerMask.NameToLayer("HexInputHit");
+    [SerializeField] LayerMask inputMovementLayerMask;
 
     public static UnityAction<Hex> OnHoveredHexChanged;
+    public static UnityAction<Hex> OnPlaceHexInputClicked;
+
+    public Vector3 InputPosition { get; private set; } = Vector3.zero;
 
     private void Awake()
     {
@@ -35,6 +38,11 @@ public class InputManager : MonoBehaviour
     private void CheckInput() 
     {
         CheckInputMovement();
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            CheckPlaceHexInput();
+        }
     }
 
     Vector3 lastInputPos = Vector3.zero;
@@ -50,7 +58,7 @@ public class InputManager : MonoBehaviour
         RaycastHit hit;
         Ray r = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-        bool isHit = Physics.Raycast(r, out hit, 1000f, InputMovementLayerMask);
+        bool isHit = Physics.Raycast(r, out hit, 1000f, inputMovementLayerMask);
 
         if (!isHit)
             return;
@@ -58,14 +66,27 @@ public class InputManager : MonoBehaviour
         Vector3 hitPos = hit.point;
         hitPos.y = 0f;
 
+        InputPosition = hitPos;
+
         AxialCoordinate coord = HexUtils.GetAxialCoordinateFromWorldPosition(hitPos, HexGridManager.Instance.HexSize);
 
         Hex newHex = HexGridManager.Instance.GetHex(coord);
 
-        if (newHex != HoveredHex) 
+        if (newHex != null && newHex != HoveredHex) 
         {
             HoveredHex = newHex;
             OnHoveredHexChanged?.Invoke(HoveredHex);
         }  
+    }
+
+    private void CheckPlaceHexInput() 
+    {
+        if (!GameManager.Instance.IsGameRunning)
+            return;
+
+        if (HoveredHex == null)
+            return;
+
+        OnPlaceHexInputClicked?.Invoke(HoveredHex);
     }
 }

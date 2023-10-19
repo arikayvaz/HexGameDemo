@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -16,7 +17,7 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        ChangeState(States.InitScene);
+        LoadLevel();
     }
 
     private void OnDestroy()
@@ -47,9 +48,24 @@ public class GameManager : MonoBehaviour
         HexGridManager.Instance.InitHexSettings();
         HexGridManager.Instance.SetHexes();
         HexGridManager.Instance.SpawnCenterHex();
+        TilePlacer.Instance.SetNextPlaceableHexTileModel();
     }
 
     #endregion
 
     #endregion
+
+    private void LoadLevel() 
+    {
+        StartCoroutine(LoadLevelCoroutine());
+    }
+
+    IEnumerator LoadLevelCoroutine() 
+    {
+        ChangeState(States.InitScene);
+
+        yield return null;
+
+        ChangeState(States.Play);
+    }
 }

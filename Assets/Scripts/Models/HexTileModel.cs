@@ -10,4 +10,9 @@ public class HexTileModel
         this.landscapes = landscapes;
         this.subTile = subTile;
     }
+
+    public void SetHex(Hex hex) 
+    {
+        this.hex = hex;
+    }
 }

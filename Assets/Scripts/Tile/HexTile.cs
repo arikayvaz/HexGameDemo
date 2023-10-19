@@ -10,11 +10,13 @@ public class HexTile : MonoBehaviour
     private HexTileModel model;
     public Hex hex;
 
-    public enum PlaceStates { None, Placeable, Placed }
+    public enum PlaceStates { None, Placeable, Placed, Preview }
     public PlaceStates PlaceState { get; private set; } = PlaceStates.None;
 
     public bool IsPlaceable => PlaceState == PlaceStates.Placeable;
     public bool IsPlaced => PlaceState == PlaceStates.Placed;
+
+    private GameObject[] goLandscapes = new GameObject[6];
 
     public void InitTileAsPlaced(HexTileModel model, Hex hex, Vector3 position) 
     {
@@ -32,8 +34,32 @@ public class HexTile : MonoBehaviour
         ChangePlaceState(PlaceStates.Placeable);
     }
 
+    public void InitTileAsPreview(HexTileModel model) 
+    {
+        this.model = model;
+        ChangePlaceState(PlaceStates.Preview);
+    }
+
+    public void OnPreviewEnd() 
+    {
+        ChangePlaceState(PlaceStates.None);
+    }
+
+    public void OnTilePlaced(HexTileModel model) 
+    {
+        this.model = model;
+        ChangePlaceState(PlaceStates.Placed);
+    }
+
     private void ChangePlaceState(PlaceStates stateNew) 
     {
+        switch (PlaceState)
+        {
+            case PlaceStates.Preview:
+                ExitStatePreview();
+                break;
+        }
+
         switch (stateNew)
         {
             case PlaceStates.Placeable:
@@ -41,6 +67,9 @@ public class HexTile : MonoBehaviour
                 break;
             case PlaceStates.Placed:
                 EnterStatePlaced();
+                break;
+            case PlaceStates.Preview:
+                EnterStatePreview();
                 break;
         }
 
@@ -64,6 +93,20 @@ public class HexTile : MonoBehaviour
     {
         SetPlacedHexVisual();
         SpawnLandscapes();
+    }
+
+    #endregion
+
+    #region State Preview
+
+    private void EnterStatePreview() 
+    {
+        SpawnLandscapes();
+    }
+
+    private void ExitStatePreview() 
+    {
+        DeleteLandscapes();
     }
 
     #endregion
@@ -93,17 +136,32 @@ public class HexTile : MonoBehaviour
         if (model == null || model.landscapes == null || model.landscapes.Length < 1)
             return;
 
-        foreach (LandscapeModel model in model.landscapes)
+        for (int i = 0; i < model.landscapes.Length; i++)
         {
-            GameObject goLandscape = HexGridManager.Instance.GetLandscapeGameObject(model.landscapeType, transform);
+            LandscapeModel landscape = model.landscapes[i];
 
-            goLandscape.name = $"LS_{model.direction}";
-            goLandscape.transform.position = HexUtils.GetLandscapePosition(transform.position, model.direction, HexGridManager.Instance.HexSettings.height);
-            goLandscape.transform.rotation = HexUtils.GetLandscapeRotation(model.direction);
+            GameObject goLandscape = HexGridManager.Instance.GetLandscapeGameObject(landscape.landscapeType, transform);
 
-            goLandscape.SetActive(model.landscapeType != LandscapeTypes.Empty);
+            goLandscape.name = $"LS_{landscape.direction}";
+            goLandscape.transform.position = HexUtils.GetLandscapePosition(transform.position, landscape.direction, HexGridManager.Instance.HexSettings.height);
+            goLandscape.transform.rotation = HexUtils.GetLandscapeRotation(landscape.direction);
 
-            model.position = goLandscape.transform.position;
+            goLandscape.SetActive(landscape.landscapeType != LandscapeTypes.Empty);
+
+            landscape.position = goLandscape.transform.position;
+
+            goLandscapes[i] = goLandscape;
+        }
+    }
+
+    public void DeleteLandscapes() 
+    {
+        if (goLandscapes == null || goLandscapes.Length < 1)
+            return;
+
+        foreach (GameObject goLandscape in goLandscapes)
+        {
+            Destroy(goLandscape);
         }
     }
 

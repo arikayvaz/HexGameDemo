@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class HexGridManager : MonoBehaviour
 {
@@ -31,6 +32,8 @@ public class HexGridManager : MonoBehaviour
 
     public float HexSize => hexSize;
 
+    public static UnityAction<HexTile> OnHexPlaced;
+
     private void Awake()
     {
         Instance = this;
@@ -48,61 +51,6 @@ public class HexGridManager : MonoBehaviour
     {
         if (Instance == this)
             Instance = null;
-    }
-
-    private void Update()
-    {
-        if (Input.GetMouseButtonDown(0))
-        {
-            RaycastHit hit;
-            Ray r = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(r, out hit, 1000f, inputLayerMask))
-            {
-                Vector3 hitPos = hit.point;
-                hitPos.y = 0f;
-
-                AxialCoordinate coord = HexUtils.GetAxialCoordinateFromWorldPosition(hitPos, hexSize);
-
-                if (hexDict != null && hexDict.Count > 0 && placedHexTileDict != null && placedHexTileDict.Count > 1)
-                {
-                    foreach (Hex hex in hexDict.Values)
-                    {
-                        bool isActive = hex.axialCoord == coord;
-
-                        if (isActive)
-                            Debug.Log("Found! " + coord);
-
-                        HexTile hexTile;
-
-                        placedHexTileDict.TryGetValue(hex, out hexTile);
-
-                        if (hexTile == null)
-                            continue;
-
-                        hexTile.gameObject.SetActive(isActive);
-                    }//foreach (Hex hex in hexList)
-                }//if (hexList != null && hexList.Count > 0 && goHexDict != null && goHexDict.Count > 1)
-            }//if (Physics.Raycast(r, out hit, 1000f, inputLayerMask))
-            return;
-        }//if (Input.GetMouseButtonDown(0))
-
-        if (Input.GetKeyDown(KeyCode.G))
-        {
-            if (hexDict != null && hexDict.Count > 0 && placedHexTileDict != null && placedHexTileDict.Count > 1)
-            {
-                foreach (Hex hex in hexDict.Values)
-                {
-                    HexTile hexTile;
-
-                    placedHexTileDict.TryGetValue(hex, out hexTile);
-
-                    if (hexTile == null)
-                        continue;
-
-                    hexTile.gameObject.SetActive(true);
-                }//foreach (Hex hex in hexList)
-            }//if (hexList != null && hexList.Count > 0 && goHexDict != null && goHexDict.Count > 1)
-        }
     }
 
     private void OnDrawGizmos()
@@ -280,6 +228,27 @@ public class HexGridManager : MonoBehaviour
             hexDict.TryGetValue(cubeCoord, out hex);
 
         return hex;
+    }
+
+    public HexTile GetPlaceableHexTile(Hex hex) 
+    {
+        if (placeableHexTileDict == null || placeableHexTileDict.Count < 1)
+            return null;
+
+        HexTile tile = null;
+        placeableHexTileDict.TryGetValue(hex, out tile);
+
+        return tile;
+    }
+
+    public void PlaceHexTile(HexTile tile, HexTileModel model) 
+    {
+        placeableHexTileDict.Remove(tile.hex);
+        placedHexTileDict.Add(tile.hex, tile);
+
+        tile.OnTilePlaced(model);
+
+        OnHexPlaced?.Invoke(tile);
     }
 
     private void DrawHexGizmos() 
