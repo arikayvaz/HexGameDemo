@@ -48,6 +48,7 @@ public class GameManager : MonoBehaviour
         HexGridManager.Instance.InitHexSettings();
         HexGridManager.Instance.SetHexes();
         HexGridManager.Instance.SpawnCenterHex();
+        HexNodeManager.Instance.SetHexNodes();
         TilePlacer.Instance.SetNextPlaceableHexTileModel();
     }
 

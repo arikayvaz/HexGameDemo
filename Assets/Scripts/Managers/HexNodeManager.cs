@@ -4,25 +4,32 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 
 public class HexNodeManager : MonoBehaviour
 {
     public static HexNodeManager Instance { get; private set; } = null;
 
+    private int tileIndex = 0;
+
     private void Awake()
     {
         Instance = this;
+
+        HexGridManager.OnHexPlaced += OnHexPlaced;
     }
 
     private void OnDestroy()
     {
         if (Instance == this)
             Instance = null;
+
+        HexGridManager.OnHexPlaced -= OnHexPlaced;
     }
 
     private void OnDrawGizmos()
     {
-        //DrawMergeGizmo();
+        DrawMergeGizmo();
         //DrawResourceNodeGizmo();
     }
 
@@ -40,7 +47,8 @@ public class HexNodeManager : MonoBehaviour
     {
         List<HexTile> searchedHexTiles = new List<HexTile>();
 
-        int tileIndex = 0;
+        //int tileIndex = 0;
+        tileIndex = 0;
 
         foreach (HexTile tile in HexGridManager.Instance.PlacedHexTileDict.Values)
         {
@@ -207,6 +215,149 @@ public class HexNodeManager : MonoBehaviour
         }//foreach (TileNodeGroup tileNodeGroup in tileNodeDict.Values)
     }
 
+    private void OnHexPlaced(HexTile tile) 
+    {
+        GroupNode(tile);
+        MergeNode(tile);
+        //ReSortTileDict();
+        SetTileNodeGroup(tile);
+        SetResourceNode(tile);
+    }
+
+    private void GroupNode(HexTile tile) 
+    {
+        TileNodeGroup tileNodeGroup = new TileNodeGroup();
+
+        for (int i = 0; i < tile.Lanscapes.Length; i++)
+        {
+            int rightIndex = i == tile.Lanscapes.Length - 1 ? 0 : i + 1;
+            int leftIndex = i == 0 ? tile.Lanscapes.Length - 1 : i - 1;
+
+            LandscapeModel center = tile.Lanscapes[i];
+
+            if (center.landscapeType == LandscapeTypes.Empty || center.landscapeType == LandscapeTypes.None)
+                continue;
+
+            LandscapeModel right = tile.Lanscapes[rightIndex];
+            LandscapeModel left = tile.Lanscapes[leftIndex];
+
+            //Check center
+            if (!center.HasGroup)
+            {
+                NodeGroup group = new NodeGroup(tileIndex, tileNodeGroup.GroupIndex(center.landscapeType));
+                center.group = group;
+                group.AddNode(center);
+
+                tileNodeGroup.AddNodeGroup(center.landscapeType, group);
+            }
+
+            //Check right
+            if (right.landscapeType == center.landscapeType)
+                GroupSideLandscape(center, right);
+
+            //Check left
+            if (left.landscapeType == center.landscapeType)
+                GroupSideLandscape(center, left);
+
+        }//for (int i = 0; i < tile.Lanscapes.Length; i++)
+
+        tileNodeDict.Add(tileIndex, tileNodeGroup);
+        tileIndex++;
+
+    }
+
+    private void MergeNode(HexTile tile) 
+    {
+        foreach (LandscapeModel landscape in tile.Lanscapes)
+        {
+            if (!landscape.HasGroup)
+                continue;
+
+            LandscapeModel neighbour = HexGridManager.Instance.GetNeighbourHexLandscape(tile.hex, landscape.direction);
+
+            if (neighbour == null || !neighbour.HasGroup || neighbour.landscapeType != landscape.landscapeType)
+                continue;
+
+            List<LandscapeModel> neighbourNodes = neighbour.group.nodes;
+
+            foreach (LandscapeModel node in neighbourNodes)
+                node.group = landscape.group;
+
+            neighbour.group = landscape.group;
+
+            landscape.group.AddNode(neighbourNodes);
+        }//foreach (LandscapeModel landscape in tile.Lanscapes)
+    }
+
+    private void SetTileNodeGroup(HexTile tile) 
+    {
+        foreach (LandscapeModel landscape in tile.Lanscapes)
+        {
+            if (!landscape.HasGroup)
+                continue;
+
+            int tileId = landscape.group.tileId;
+            int groupId = landscape.group.groupId;
+
+            if (tileNodeDict.ContainsKey(tileId))
+            {
+                TileNodeGroup tileNodeGroup = null;
+                tileNodeDict.TryGetValue(tileId, out tileNodeGroup);
+
+                if (tileNodeGroup.ContainsKey(landscape.landscapeType, groupId))
+                    continue;
+
+                tileNodeGroup.AddNodeGroup(landscape.landscapeType, groupId, landscape.group);
+            }
+            else
+            {
+                TileNodeGroup tileNodeGroup = new TileNodeGroup();
+                tileNodeGroup.AddNodeGroup(landscape.landscapeType, groupId, landscape.group);
+                tileNodeDict.Add(tileId, tileNodeGroup);
+
+            }//if (tileNodeDict.ContainsKey(tileId))
+
+        }//foreach (LandscapeModel landscape in tile.Lanscapes) 
+    }
+
+    private void SetResourceNode(HexTile tile) 
+    {
+        foreach (LandscapeModel landscape in tile.Lanscapes) 
+        {
+            if (!landscape.HasGroup)
+                continue;
+
+            TileNodeGroup tileNodeGroup = null;
+            tileNodeDict.TryGetValue(landscape.group.tileId, out tileNodeGroup);
+
+            if (tileNodeGroup == null)
+                continue;
+
+            foreach (NodeGroup nodeGroup in tileNodeGroup.ForestNodeGroups)
+            {
+                (int, int) key = (nodeGroup.tileId, nodeGroup.groupId);
+
+                if (forestResourceNodeDict.ContainsKey(key))
+                    continue;
+
+                forestResourceNodeDict.Add(key, nodeGroup);
+
+            }//foreach (NodeGroup nodeGroup in tileNodeGroup.ForestNodeGroups)
+
+            //Set Field Resource Nodes
+            foreach (NodeGroup nodeGroup in tileNodeGroup.FieldNodeGroups)
+            {
+                (int, int) key = (nodeGroup.tileId, nodeGroup.groupId);
+
+                if (fieldResourceNodeDict.ContainsKey(key))
+                    continue;
+
+                fieldResourceNodeDict.Add(key, nodeGroup);
+
+            }//foreach (NodeGroup nodeGroup in tileNodeGroup.ForestNodeGroups)
+        }
+    }
+
     private void DrawMergeGizmo() 
     {
         if (tileNodeDict == null || tileNodeDict.Count < 1)
@@ -228,9 +379,26 @@ public class HexNodeManager : MonoBehaviour
 
                     string text = $"{node.group.tileId}-{node.group.groupId}";
                     Handles.Label(pos, text, style);
-                }
-            }
-        }
+                }//foreach (var node in nodeGroup.nodes)
+            }//foreach (var nodeGroup in tileNodeGroup.ForestNodeGroups)
+        }//foreach (var tileNodeGroup in tileNodeDict.Values)
+
+        style.normal.textColor = Color.red;
+
+        foreach (var tileNodeGroup in tileNodeDict.Values)
+        {
+            foreach (var nodeGroup in tileNodeGroup.FieldNodeGroups)
+            {
+                foreach (var node in nodeGroup.nodes)
+                {
+                    Vector3 pos = node.Position;
+                    pos.y += 0.25f;
+
+                    string text = $"{node.group.tileId}-{node.group.groupId}";
+                    Handles.Label(pos, text, style);
+                }//foreach (var node in nodeGroup.nodes)
+            }//foreach (var nodeGroup in tileNodeGroup.FieldNodeGroups)
+        }//foreach (var tileNodeGroup in tileNodeDict.Values)
 
     }
 
